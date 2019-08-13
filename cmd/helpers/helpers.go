@@ -136,27 +136,6 @@ func execCmd(cmd *exec.Cmd) error {
 	return cmd.Run()
 }
 
-// RemoveFiles ...
-func RemoveFiles(pPath, aName, fName string) error {
-	// function folder
-	folder := filepath.Join(pPath, "functions", aName)
-	if fName != "" {
-		folder = filepath.Join(folder, fName)
-	}
-
-	// add mocks folder
-	folders := []string{folder, filepath.Join(pPath, "mocks", aName+"Mocks")}
-
-	for _, folder := range folders {
-		err := os.RemoveAll(folder)
-		if err != nil {
-			return fmt.Errorf("Error deleting function folder %s: %s", folder, err)
-		}
-	}
-
-	return nil
-}
-
 // ReadDataFromFile reads the contents of a file at the given path
 func ReadDataFromFile(path string) ([]byte, error) {
 	f, err := os.Open(path)

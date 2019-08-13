@@ -18,52 +18,46 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package cmd
+package remove
 
 import (
-	"fmt"
-	"os"
-
-	"github.com/crolly/dynQL/cmd/remove"
-
-	"github.com/crolly/dynQL/cmd/test"
-
-	"github.com/crolly/dynQL/cmd/deploy"
-
-	"github.com/crolly/dynQL/cmd/debug"
-
-	"github.com/crolly/dynQL/cmd/add"
-	"github.com/crolly/dynQL/cmd/create"
-
+	"github.com/crolly/color"
+	"github.com/crolly/dynQL/cmd/models"
 	"github.com/spf13/cobra"
 )
 
-var (
-	cfgFile string
-)
+// RemoveCmd represents the remove command
+var RemoveCmd = &cobra.Command{
+	Use:   "remove name",
+	Short: "Remove schema or function from your project",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		name := args[0]
 
-// RootCmd represents the base command when called without any subcommands
-var RootCmd = &cobra.Command{
-	Use:   "dynql",
-	Short: "dynql",
-	Long: `
-dynql lets you ....`,
+		c, err := models.ReadDQLConfig()
+		if err != nil {
+			return err
+		}
+
+		// delete from configuration
+		c.Remove(name)
+
+		// delete files
+		err = c.RemoveFiles(name)
+		if err != nil {
+			return err
+		}
+
+		return c.Write()
+	},
+	PostRun: func(cmd *cobra.Command, args []string) {
+		printRemoveMsg()
+	},
 }
 
-func init() {
-	RootCmd.AddCommand(create.CreateCmd)
-	RootCmd.AddCommand(add.AddCmd)
-	RootCmd.AddCommand(debug.DebugCmd)
-	RootCmd.AddCommand(deploy.DeployCmd)
-	RootCmd.AddCommand(remove.RemoveCmd)
-	RootCmd.AddCommand(test.TestCmd)
-}
-
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
-	if err := RootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+func printRemoveMsg() {
+	c := color.New(color.FgRed, color.Bold)
+	c.Println("Everything has beed removed.")
+	c.Println("Do not forget that changes are only applied locally.")
+	c.Println("To update your Serverless service run 'sls deploy'.")
 }

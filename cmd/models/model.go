@@ -163,7 +163,6 @@ func (m *Model) addNested(b []int, pos int, attributes string, slice bool) int {
 func (m *Model) parseAttributes(attrs string) {
 	for _, a := range strings.Split(attrs, ",") {
 		inputs := strings.Split(a, ":")
-		fmt.Println(inputs)
 		name := inputs[0]
 
 		// handle optional inputs
@@ -334,12 +333,17 @@ func (m Model) String() string {
 	sb.WriteString(fmt.Sprintf("// %s defines the %s model\n", m.Ident.Pascalize(), m.Ident.Pascalize()))
 	sb.WriteString(fmt.Sprintf("type %s struct {\n", m.Ident.Pascalize()))
 	for _, a := range m.Attributes {
-		sb.WriteString(fmt.Sprintf("%s\n", a.String()))
+		keys := make([]string, len(m.KeySchema))
+		for _, k := range m.KeySchema {
+			keys = append(keys, flect.Camelize(k))
+		}
+		isKey := helpers.Contains(keys, flect.Camelize(a.Name))
+		sb.WriteString(fmt.Sprintf("%s\n", a.String(isKey)))
 	}
 	if len(m.Nested) > 0 {
 		sb.WriteString("\n")
 		for _, n := range m.Nested {
-			sb.WriteString(fmt.Sprintf("\t%s %s `json:\"%s\" dynamo:\"%s\"`\n", n.Ident.Pascalize(), n.Type, n.Ident.Underscore(), n.Ident.Underscore()))
+			sb.WriteString(fmt.Sprintf("\t%s %s `json:\"%s,omitempty\" dynamo:\"%s,omitempty\"`\n", n.Ident.Pascalize(), n.Type, n.Ident.Underscore(), n.Ident.Underscore()))
 		}
 		sb.WriteString("}\n")
 		sb.WriteString("\n")
@@ -356,6 +360,10 @@ func (m Model) String() string {
 }
 
 // String returns the string representation of an attribute
-func (a Attribute) String() string {
-	return fmt.Sprintf("\t%s %s `json:\"%s\" dynamo:\"%s\"`", a.Ident.Pascalize(), a.GoType, a.Ident.Underscore(), a.Ident.Underscore())
+func (a Attribute) String(isKey bool) string {
+	omitempty := ",omitempty"
+	if isKey {
+		omitempty = ""
+	}
+	return fmt.Sprintf("\t%s %s `json:\"%s%s\" dynamo:\"%s%s\"`", a.Ident.Pascalize(), a.GoType, a.Ident.Underscore(), omitempty, a.Ident.Underscore(), omitempty)
 }

@@ -444,6 +444,12 @@ func (s *ServerlessConfig) SetResourceWithModel(c *DQLConfig, m *Model) {
 
 }
 
+func (s *ServerlessConfig) removeResource(resourceName string) *ServerlessConfig {
+	delete(s.Resources.Resources, resourceName)
+
+	return s
+}
+
 // AddSchema adds the Schema to the ServerlessConfig
 func (s *ServerlessConfig) AddSchema(schemaName, path string) *ServerlessConfig {
 	return s.AddFunction(schemaName, path, "POST")
@@ -487,8 +493,9 @@ func (s *ServerlessConfig) setFunction(name string, fn *ServerlessFunction) *Ser
 }
 
 // RemoveFunction removes a function from the ServerlessConfig
-func (s *ServerlessConfig) RemoveFunction(n string) {
+func (s *ServerlessConfig) RemoveFunction(n string) *ServerlessConfig {
 	delete(s.Functions, n)
+	return s
 }
 
 // AddPoolEnv adds the given cognito user pool arn as environment in .env

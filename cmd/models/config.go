@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"text/template"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -129,21 +130,60 @@ func (c *DQLConfig) AddSchema(schemaName, path string) error {
 	return s.AddSchema(schemaName, path).Write()
 }
 
-// RemoveResource removes a given resource from the DQLConfig and ServerlessConfig
-func (c *DQLConfig) RemoveResource(rN string) {
-	// remove froc DQLConfig
-	delete(c.Resources, rN)
+// Remove removes the schema/ function from the Config
+func (c *DQLConfig) Remove(name string) error {
+	// remove from DQLConfig
+	delete(c.Schemas, name)
+
+	// remove from ServerlessConfig
+	s, err := c.ReadServerlessConfig()
+	if err != nil {
+		return err
+	}
+
+	return s.RemoveFunction(name).Write()
 }
 
-// CreateResourceTables creates the tables in the local DynamoDB named by the given mode
-func (c DQLConfig) CreateResourceTables(overwrite bool) error {
+// RemoveResource removes a given resource from the DQLConfig and ServerlessConfig
+func (c *DQLConfig) RemoveResource(resourceName string, deleteTable bool) error {
+	// remove from DQLConfig
+	delete(c.Resources, resourceName)
+
+	// delete table
+	if deleteTable {
+		svc := c.connectDB()
+		result, err := svc.ListTables(&dynamodb.ListTablesInput{})
+		if err != nil {
+			return err
+		}
+		for _, t := range result.TableNames {
+			if strings.HasPrefix(*t, c.ProjectName+"-"+flect.New(resourceName).Pluralize().Camelize().String()) {
+				c.deleteTable(svc, *t)
+			}
+		}
+	}
+
+	// remove from ServerlessConfig
+	s, err := c.ReadServerlessConfig()
+	if err != nil {
+		return err
+	}
+
+	return s.removeResource(resourceName).Write()
+}
+
+func (c DQLConfig) connectDB() *dynamodb.DynamoDB {
 	// create service to dynamodb
 	sess := session.Must(session.NewSession(&aws.Config{
 		Endpoint: aws.String("http://localhost:8000"),
 		Region:   aws.String(c.Region),
 	}))
-	svc := dynamodb.New(sess)
+	return dynamodb.New(sess)
+}
 
+// CreateResourceTables creates the tables in the local DynamoDB named by the given mode
+func (c DQLConfig) CreateResourceTables(overwrite bool) error {
+	svc := c.connectDB()
 	// get list of tables
 	result, err := svc.ListTables(&dynamodb.ListTablesInput{})
 	if err != nil {
@@ -173,7 +213,7 @@ func (c DQLConfig) CreateResourceTables(overwrite bool) error {
 
 		if tables[tableName] {
 			if overwrite {
-				deleteTable(svc, tableName)
+				c.deleteTable(svc, tableName)
 				createTableForResource(svc, tableName, props)
 			} else {
 				log.Printf("Table %s already exists, skipping creation...", tableName)
@@ -302,7 +342,7 @@ func createTableForResource(svc *dynamodb.DynamoDB, tableName string, props Prop
 	return nil
 }
 
-func deleteTable(svc *dynamodb.DynamoDB, tableName string) error {
+func (c DQLConfig) deleteTable(svc *dynamodb.DynamoDB, tableName string) error {
 	_, err := svc.DeleteTable(&dynamodb.DeleteTableInput{
 		TableName: aws.String(tableName),
 	})
@@ -367,4 +407,35 @@ func (c DQLConfig) MakeDebug() {
 // MakeBuild renders the Makefile and builds the binaries
 func (c DQLConfig) MakeBuild(test bool) {
 	c.make("bin", "build", test)
+}
+
+// RemoveFiles ...
+func (c DQLConfig) RemoveFiles(name string) error {
+	// function folder
+	folder := filepath.Join(c.ProjectPath, "handler", name)
+
+	return os.RemoveAll(folder)
+}
+
+// RemoveResourceFiles ...
+func (c DQLConfig) RemoveResourceFiles(schemaName, resourceName string) error {
+	f := resourceName + ".go"
+	t := resourceName + "_test.go"
+	files := []string{
+		filepath.Join(c.ProjectPath, "handler", schemaName, "schema", f),
+		filepath.Join(c.ProjectPath, "handler", schemaName, "schema", t),
+		filepath.Join(c.ProjectPath, "models", f),
+		filepath.Join(c.ProjectPath, "models", t),
+		filepath.Join(c.ProjectPath, "services", f),
+		filepath.Join(c.ProjectPath, "services", t),
+	}
+
+	for _, file := range files {
+		err := os.Remove(file)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

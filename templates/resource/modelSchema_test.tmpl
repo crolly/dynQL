@@ -6,12 +6,20 @@
 {{- $pluralPascal := $plural.Pascalize -}}
 {{- $hash := Underscore (index .Model.KeySchema "HASH") -}}
 {{- $range := Underscore (index .Model.KeySchema "RANGE") -}}
+{{- $hashAttr := Pascalize (index .Model.KeySchema "HASH") -}}
+{{- $rangeAttr := Pascalize (index .Model.KeySchema "RANGE") -}}
 {{- $composite := .Model.CompositeKey -}}
 package schema_test
 
 import (
 	"fmt"
+	"os"
 	"testing"
+
+	"github.com/mitchellh/mapstructure"
+
+	"github.com/crolly/structs"
+	"github.com/gofrs/uuid"	
 
 	"github.com/stretchr/testify/assert"
 
@@ -24,18 +32,41 @@ func init() {
 	os.Setenv("{{$single.ToUpper}}_TABLE_NAME", "{{.Config.ProjectName}}-{{$pluralCamel}}-test")
 }
 
+func cleanupModel(m models.{{$singlePascal}}) error {
+	params := graphql.ResolveParams{
+		Args: map[string]interface{}{
+			"{{ $hash }}": m.{{$hashAttr}},
+			{{- if $composite}}
+			"{{ $range }}": m.{{$rangeAttr}},
+			{{- end}}	
+		},
+	}
+	return models.Delete{{$singlePascal}}(params)
+}
+
+func cleanupSlice() {
+	
+}
+
 func TestPut{{$singlePascal}}(t *testing.T) {
 	// enter test data
-	m := models.{{$singlePascal}}{}
+	expected := models.{{$singlePascal}}{
+		{{$hashAttr}}: uuid.Must(uuid.NewV4()).String(),
+		{{- if $composite}}
+		{{$rangeAttr}}: uuid.Must(uuid.NewV4()).String(),
+		{{- end}}
+	}
 	q := TestQuery{
 		Query: `mutation create{{$singlePascal}}($m: {{$singlePascal}}Input){
-			{{$singleCamel}}({{$singleCamel}}:$m){
+			{{$singlePascal}}({{$singleCamel}}:$m){
 			  {{ $hash }}
-			  {{if $composite}}{{ $range }}{{end}}
+			  {{- if $composite}}
+			  {{ $range }}
+			  {{- end}}
 			}
 		  }`,
 		Variables: map[string]interface{}{
-			"m": marshal(m),
+			"m": structs.Map(expected),
 		},
 	}
 
@@ -50,7 +81,13 @@ func TestPut{{$singlePascal}}(t *testing.T) {
 	}
 
 	assert.Equal(t, 0, len(result.Errors))
-	// enter actual assertions
+	actual := models.{{$singlePascal}}{}
+	err := mapstructure.Decode(result.Data.(map[string]interface{})["Room"], &actual)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, actual)
+
+	err = cleanupModel(expected)
+	assert.NoError(t, err)
 }
 
 func TestList{{$singlePascal}}s(t *testing.T) {
@@ -58,7 +95,9 @@ func TestList{{$singlePascal}}s(t *testing.T) {
 		Query: `query {
 			{{$pluralPascal}} {
 			  {{ $hash }}
-			  {{if $composite}}{{ $range }}{{end}}
+			  {{- if $composite}}
+			  {{ $range }}
+			  {{- end}}
 			}
 		  }`,
 	}
