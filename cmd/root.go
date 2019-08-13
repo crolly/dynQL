@@ -24,6 +24,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/crolly/dynQL/cmd/test"
+
 	"github.com/crolly/dynQL/cmd/deploy"
 
 	"github.com/crolly/dynQL/cmd/debug"
@@ -51,6 +53,7 @@ func init() {
 	RootCmd.AddCommand(add.AddCmd)
 	RootCmd.AddCommand(debug.DebugCmd)
 	RootCmd.AddCommand(deploy.DeployCmd)
+	RootCmd.AddCommand(test.TestCmd)
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

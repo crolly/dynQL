@@ -51,29 +51,23 @@ var (
 			if err != nil {
 				return err
 			}
-			// create tables for resources
-			s, err := models.ReadServerlessConfig(c.ProjectPath)
-			if err != nil {
-				return err
-			}
 
 			os.Setenv("GRAPH_DYNAMO_MODE", "test")
-			err = s.CreateResourceTables(force)
+			err = c.CreateResourceTables(force)
 			if err != nil {
 				return err
 			}
 
-			env := []string{"MODE=test"}
 			t := "go test -cover -p 1"
 			if profile {
-				err = helpers.RunCmdWithEnv(env, "/bin/sh", "-c", t+" -coverprofile=cover.out ./...")
+				err = helpers.RunCmd("/bin/sh", "-c", t+" -coverprofile=cover.out ./...")
 				if err != nil {
 					return err
 				}
-				return helpers.RunCmdWithEnv(env, "/bin/sh", "-c", "go tool cover -html=cover.out")
+				return helpers.RunCmd("/bin/sh", "-c", "go tool cover -html=cover.out")
 			}
 
-			return helpers.RunCmdWithEnv(env, "/bin/sh", "-c", t+" ./...")
+			return helpers.RunCmd("/bin/sh", "-c", t+" ./...")
 		},
 	}
 
