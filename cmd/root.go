@@ -42,10 +42,10 @@ var (
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
-	Use:   "dynamoql",
-	Short: "dynamoql",
+	Use:   "dynql",
+	Short: "dynql",
 	Long: `
-dynamoql lets you ....`,
+dynql lets you ....`,
 }
 
 func init() {
