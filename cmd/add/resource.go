@@ -69,7 +69,7 @@ var (
 			renderResourceTemplates(c, m, schema)
 
 			// update serverless.yml
-			s, err := models.ReadServerlessConfig(c.ProjectPath)
+			s, err := c.ReadServerlessConfig()
 			if err != nil {
 				return err
 			}
@@ -97,6 +97,8 @@ func init() {
 	resourceCmd.Flags().StringVarP(&billingMode, "billingMode", "b", "provisioned", "Choose between 'provisioned' for ProvisionedThroughput or 'ondemand'")
 	resourceCmd.Flags().Int64VarP(&readUnits, "readUnits", "r", 1, "Set the ReadCapacityUnits if billingMode is set to ProvisionedThroughput")
 	resourceCmd.Flags().Int64VarP(&writeUnits, "writeUnits", "w", 1, "Set the WriteCapacityUnits if billingMode is set to ProvisionedThroughput")
+
+	resourceCmd.MarkFlagRequired("schema")
 }
 
 func renderResourceTemplates(config *models.DQLConfig, model *models.Model, schema string) error {

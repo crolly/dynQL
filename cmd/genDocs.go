@@ -29,7 +29,7 @@ import (
 var (
 	genDocsCmd = &cobra.Command{
 		Use:   "genDocs",
-		Short: "Generates the documentation for mug",
+		Short: "Generates the documentation for dynql",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return doc.GenMarkdownTree(RootCmd, "./docs")
 		},

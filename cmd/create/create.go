@@ -40,12 +40,13 @@ var (
 		Short: "Creates the boilerplate for dynQL project.",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// TODO: change to directory after creation
-			_, err := createProjectStructure(args[0], force)
+			p, err := createProjectStructure(args[0], force)
+			err = os.Chdir(p)
 			if err != nil {
 				return err
 			}
-			return nil
+			_, err = helpers.ExecuteCommand(cmd.Root(), "add", "schema", schema)
+			return err
 		},
 	}
 
@@ -63,6 +64,7 @@ func init() {
 		Hidden: true,
 	})
 	CreateCmd.Flags().StringVarP(&region, "region", "r", "eu-central-1", "Region the Project will be deployed to (e.g. us-east-1 or eu-central-1)")
+	CreateCmd.Flags().StringVarP(&schema, "schema", "s", "graphql", "Schema generated together with the create command to save one step")
 	CreateCmd.Flags().BoolVarP(&force, "force", "f", false, "Force overwrite of the Directory in case it exists already")
 }
 

@@ -1,7 +1,7 @@
 {{- $single := .Model.Ident.Singularize -}}
 {{- $singleCamel := $single.Camelize -}}
 {{- $singlePascal := $single.Pascalize -}}
-{{- $plural := .Model.Ident.Singularize -}}
+{{- $plural := .Model.Ident.Pluralize -}}
 {{- $pluralCamel := $plural.Camelize -}}
 {{- $pluralPascal := $plural.Pascalize -}}
 {{- $hash := Underscore (index .Model.KeySchema "HASH") -}}
@@ -19,6 +19,10 @@ import (
 	"{{.Config.ImportPath}}/models"
 	"github.com/graphql-go/graphql"
 )
+
+func init() {
+	os.Setenv("{{$single.ToUpper}}_TABLE_NAME", "{{.Config.ProjectName}}-{{$pluralCamel}}-test")
+}
 
 func TestPut{{$singlePascal}}(t *testing.T) {
 	// enter test data

@@ -23,6 +23,7 @@ package add
 import (
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/crolly/dynQL/cmd/helpers"
 	"github.com/crolly/dynQL/cmd/models"
@@ -45,12 +46,12 @@ var (
 			if err != nil {
 				return err
 			}
-			sc, err := models.ReadServerlessConfig(c.ProjectPath)
+			sc, err := c.ReadServerlessConfig()
 			if err != nil {
 				return err
 			}
 
-			sc.AddFunction(fName, path, method)
+			sc.AddFunction(fName, strings.TrimPrefix(path, "/"), method)
 
 			// generate files
 			err = renderFunctionTemplates(c, fName)

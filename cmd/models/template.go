@@ -75,7 +75,7 @@ func NewTemplate(c *DQLConfig) (*TemplateConfig, error) {
 		},
 	}
 
-	s, err := ReadServerlessConfig(c.ProjectPath)
+	s, err := c.ReadServerlessConfig()
 	if err != nil {
 		return nil, err
 	}

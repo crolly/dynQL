@@ -304,20 +304,8 @@ type TTLSpecification struct {
 	Enabled       bool   `yaml:"Enabled"`
 }
 
-// NewServerlessConfig returns a new ServerlessConfig with the given service name and handler function
-func NewServerlessConfig(c *DQLConfig, schemaName string) ServerlessConfig {
-	s := NewDefaultServerlessConfig()
-	s.ProjectPath = c.ProjectPath
-	s.Service.Name = c.ProjectName
-	s.Provider.Region = c.Region
-
-	s.AddFunction(schemaName, c.Schemas[schemaName].Path, "POST")
-
-	return s
-}
-
-// NewDefaultServerlessConfig return a default ServerlessConfig object
-func NewDefaultServerlessConfig() ServerlessConfig {
+// newDefaultServerlessConfig return a default ServerlessConfig object
+func newDefaultServerlessConfig() ServerlessConfig {
 	s := ServerlessConfig{
 		Provider: Provider{
 			Name:    "aws",
@@ -345,21 +333,6 @@ func NewDefaultServerlessConfig() ServerlessConfig {
 	}
 
 	return s
-}
-
-// ReadServerlessConfig returns the ServerlessConfig of the project
-func ReadServerlessConfig(projectPath string) (*ServerlessConfig, error) {
-	var sc ServerlessConfig
-	data, err := helpers.ReadDataFromFile(filepath.Join(projectPath, "serverless.yml"))
-	if err == nil {
-		if err := yaml.Unmarshal(data, &sc); err != nil {
-			return nil, err
-		}
-	}
-
-	sc.ProjectPath = projectPath
-
-	return &sc, nil
 }
 
 func (s *ServerlessConfig) updateSecrets(path string) error {
@@ -471,17 +444,13 @@ func (s *ServerlessConfig) SetResourceWithModel(c *DQLConfig, m *Model) {
 
 }
 
-// // SetFunctions sets a slice of Functions to the ServerlessConfig
-// func (s *ServerlessConfig) SetFunctions(fns []*Function) {
-// 	s.Functions = map[string]*ServerlessFunction{}
-
-// 	for _, fn := range fns {
-// 		s.AddFunction(fn)
-// 	}
-// }
+// AddSchema adds the Schema to the ServerlessConfig
+func (s *ServerlessConfig) AddSchema(schemaName, path string) *ServerlessConfig {
+	return s.AddFunction(schemaName, path, "POST")
+}
 
 // AddFunction adds a Function with given name, path and method to the ServerlessConfig
-func (s *ServerlessConfig) AddFunction(name, path, method string) {
+func (s *ServerlessConfig) AddFunction(name, path, method string) *ServerlessConfig {
 	handler := "bin/" + name
 	fn := &ServerlessFunction{
 		Handler: handler,
@@ -496,7 +465,7 @@ func (s *ServerlessConfig) AddFunction(name, path, method string) {
 		Events: []Events{
 			Events{
 				HTTP: &HTTPEvent{
-					Path:   strings.TrimPrefix("/", path),
+					Path:   strings.TrimPrefix(path, "/"),
 					Method: method,
 					CORS:   true,
 				},
@@ -504,15 +473,17 @@ func (s *ServerlessConfig) AddFunction(name, path, method string) {
 		},
 	}
 
-	s.setFunction(name, fn)
+	return s.setFunction(name, fn)
 }
 
-func (s *ServerlessConfig) setFunction(name string, fn *ServerlessFunction) {
+func (s *ServerlessConfig) setFunction(name string, fn *ServerlessFunction) *ServerlessConfig {
 	// make sure map exists
 	if len(s.Functions) == 0 {
 		s.Functions = map[string]*ServerlessFunction{}
 	}
 	s.Functions[name] = fn
+
+	return s
 }
 
 // RemoveFunction removes a function from the ServerlessConfig

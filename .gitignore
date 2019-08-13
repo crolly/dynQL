@@ -3,3 +3,4 @@ vendor/
 example/
 
 dql.config.json
+cmd/genCompletion.go

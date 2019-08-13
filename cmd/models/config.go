@@ -81,18 +81,36 @@ func (c DQLConfig) Write() error {
 	return ioutil.WriteFile(f, json, 0644)
 }
 
-// NewServerlessConfig return a new ServerlessConfig with the attributes from the DQLConfig
-// NewFromResourceConfig returns a ServerlessConfig from a provided ResourceConfig
-func (c DQLConfig) NewServerlessConfig(resource string) ServerlessConfig {
-	s := NewDefaultServerlessConfig()
-	s.Service = Service{Name: c.ProjectName + "-" + resource}
+// newServerlessConfig return a new ServerlessConfig with the attributes from the DQLConfig
+func (c DQLConfig) newServerlessConfig() ServerlessConfig {
+	s := newDefaultServerlessConfig()
+	s.Service = Service{Name: c.ProjectName}
 	s.Provider.Region = c.Region
+	s.ProjectPath = c.ProjectPath
 
 	return s
 }
 
+// ReadServerlessConfig reads the ServerlessConfig from serverless.yml in the resource or function group directory.
+// If a serverless.yml file does not exist, a new default ServerlessConfig is returned
+func (c DQLConfig) ReadServerlessConfig() (*ServerlessConfig, error) {
+	var sc ServerlessConfig
+	data, err := helpers.ReadDataFromFile(filepath.Join(c.ProjectPath, "serverless.yml"))
+	if err == nil {
+		if err := yaml.Unmarshal(data, &sc); err != nil {
+			return nil, err
+		}
+	} else if os.IsNotExist(err) {
+		// file doesn't exist return default ServerlessConfig
+		sc = c.newServerlessConfig()
+
+	}
+
+	return &sc, nil
+}
+
 // AddSchema adds a new instance of Schema to the Config
-func (c *DQLConfig) AddSchema(schemaName, path string) {
+func (c *DQLConfig) AddSchema(schemaName, path string) error {
 	if len(c.Schemas) == 0 {
 		c.Schemas = map[string]*Schema{}
 	}
@@ -101,24 +119,14 @@ func (c *DQLConfig) AddSchema(schemaName, path string) {
 		Name: schemaName,
 		Path: path,
 	}
-}
 
-// ReadServerlessConfig reads the ServerlessConfig from serverless.yml in the resource or function group directory.
-// If a serverless.yml file does not exist, a new default ServerlessConfig is returned
-func (c DQLConfig) ReadServerlessConfig(rn string) (*ServerlessConfig, error) {
-	var sc ServerlessConfig
-	data, err := helpers.ReadDataFromFile(filepath.Join(c.ProjectPath, "functions", rn, "serverless.yml"))
-	if err == nil {
-		if err := yaml.Unmarshal(data, &sc); err != nil {
-			return nil, err
-		}
-	} else if os.IsNotExist(err) {
-		// file doesn't exist return default ServerlessConfig
-		sc = c.NewServerlessConfig(rn)
-
+	// add schema to ServerelessConfig
+	s, err := c.ReadServerlessConfig()
+	if err != nil {
+		return err
 	}
 
-	return &sc, nil
+	return s.AddSchema(schemaName, path).Write()
 }
 
 // RemoveResource removes a given resource from the DQLConfig and ServerlessConfig
@@ -148,7 +156,7 @@ func (c DQLConfig) CreateResourceTables(overwrite bool) error {
 	}
 
 	// iterate over resources
-	s, err := ReadServerlessConfig(c.ProjectPath)
+	s, err := c.ReadServerlessConfig()
 	if err != nil {
 		return err
 	}
@@ -313,7 +321,7 @@ func (c DQLConfig) renderMakefile(t *template.Template) error {
 	}
 	defer f.Close()
 
-	s, err := ReadServerlessConfig(c.ProjectPath)
+	s, err := c.ReadServerlessConfig()
 	if err != nil {
 		return err
 	}

@@ -41,6 +41,10 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// get schema name
 			schemaName := args[0]
+			// make sure path is set
+			if len(path) == 0 {
+				path = schemaName
+			}
 			// render templates with project config and schema name
 			c, err := models.ReadDQLConfig()
 			if err != nil {
@@ -52,20 +56,14 @@ var (
 				return err
 			}
 
-			err = renderSchemaTemplates(c, schemaName)
-			if err != nil {
-				return err
-			}
-			// render serverless.yml
-			s := models.NewServerlessConfig(c, schemaName)
-			return s.Write()
+			return renderSchemaTemplates(c, schemaName)
 		},
 	}
 )
 
 func init() {
 	AddCmd.AddCommand(schemaCmd)
-	schemaCmd.Flags().StringVarP(&path, "path", "p", "/graphql", "Path under which the Schema will be available")
+	schemaCmd.Flags().StringVarP(&path, "path", "p", "", "Path under which the Schema will be available")
 }
 
 func renderSchemaTemplates(config *models.DQLConfig, schema string) error {

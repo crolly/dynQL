@@ -79,38 +79,67 @@ func getFieldDef(in interface{}, oct objectConfigType) map[string]graphql.Output
 	def := map[string]graphql.Output{}
 
 	t := getElemType(in)
-	for i := 0; i < t.NumField(); i++ {
-		f := t.Field(i)
-		switch f.Type.Kind() {
-		case reflect.Bool:
-			def[flect.Underscore(f.Name)] = graphql.Boolean
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-			reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			def[flect.Underscore(f.Name)] = graphql.Int
-		case reflect.Float32, reflect.Float64:
-			def[flect.Underscore(f.Name)] = graphql.Float
-		case reflect.String:
-			def[flect.Underscore(f.Name)] = graphql.String
-		case reflect.Struct:
-			s := reflect.New(f.Type).Interface()
-			switch oct {
-			case inputConfig:
-				def[flect.Underscore(f.Name)] = graphQLInputType(s)
-			case objectConfig:
-				def[flect.Underscore(f.Name)] = graphQLType(s)
-			}
-		case reflect.Slice, reflect.Array:
-			s := reflect.New(f.Type).Interface()
-			switch oct {
-			case inputConfig:
-				def[flect.Underscore(f.Name)] = graphql.NewList(graphQLInputType(s))
-			case objectConfig:
-				def[flect.Underscore(f.Name)] = graphql.NewList(graphQLType(s))
+	if t.Kind() == reflect.Struct {
+		for i := 0; i < t.NumField(); i++ {
+			f := t.Field(i)
+			switch f.Type.Kind() {
+			case reflect.Struct:
+				s := reflect.New(f.Type).Interface()
+				def[flect.Underscore(f.Name)] = newStructOf(s, oct)
+			case reflect.Slice, reflect.Array:
+				s := reflect.New(f.Type).Interface()
+				def[flect.Underscore(f.Name)] = newListOf(s, oct)
+			default:
+				def[flect.Underscore(f.Name)] = getGraphQLType(f.Type)
 			}
 		}
 	}
 
 	return def
+}
+
+func getGraphQLType(t reflect.Type) graphql.Output {
+	switch t.Kind() {
+	case reflect.Bool:
+		return graphql.Boolean
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return graphql.Int
+	case reflect.Float32, reflect.Float64:
+		return graphql.Float
+	case reflect.String:
+		return graphql.String
+	default:
+		return nil
+	}
+}
+
+func newStructOf(i interface{}, oct objectConfigType) graphql.Output {
+	switch oct {
+	case inputConfig:
+		return graphQLInputType(i)
+	case objectConfig:
+		return graphQLType(i)
+	default:
+		return nil
+	}
+}
+func newListOf(i interface{}, oct objectConfigType) *graphql.List {
+	t := getElemType(i)
+	k := t.Kind()
+	if k != reflect.Struct {
+		// catch slices/ arrays of scalar types
+		return graphql.NewList(getGraphQLType(t))
+	}
+
+	switch oct {
+	case inputConfig:
+		return graphql.NewList(graphQLInputType(i))
+	case objectConfig:
+		return graphql.NewList(graphQLType(i))
+	default:
+		return nil
+	}
 }
 
 func getSelectedFields(params graphql.ResolveParams) (map[string]interface{}, error) {
