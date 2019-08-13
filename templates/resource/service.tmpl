@@ -1,0 +1,59 @@
+{{- $single := .Model.Ident.Singularize}}
+{{- $singlePascal := $single.Pascalize.String }}
+{{- $singleUpepr := $single.ToUpper.String }}
+{{- $singleUpper := $single.ToUpper.String}}
+{{- $first := First $single.Camelize -}}
+{{- $composite := .Model.CompositeKey -}}
+package services
+
+import "os"
+
+// {{$singlePascal}}DynamoService is the DynamoDB Service for the {{$singlePascal}} Model
+type {{$singlePascal}}DynamoService struct {
+	dynamoService
+}
+
+{{if $composite -}}
+// {{$singlePascal}}Service returns the {{$singlePascal}}DynamoService with table-, hash- and rangeName set
+func {{$singlePascal}}Service(hashName, rangeName string) *{{$singlePascal}}DynamoService {
+{{- else}}
+// {{$singlePascal}}Service returns the {{$singlePascal}}DynamoService with table- and hashName set
+func {{$singlePascal}}Service(hashName string) *{{$singlePascal}}DynamoService {
+{{- end}}
+    tableName := os.Getenv("{{$singleUpper}}_TABLE_NAME")
+	return &{{$singlePascal}}DynamoService{
+		dynamoService: dynamoService{
+			tableName: tableName,
+			hashName:  hashName,
+			{{if $composite -}}
+			rangeName: rangeName,
+			composite: true,
+			{{- end}}
+		},
+	}
+}
+
+// Get retrieves a single {{$singlePascal}} with the given hashKey
+func ({{$first}} {{$singlePascal}}DynamoService) Get(hashKey{{if $composite}}, rangeKey{{end}}, out interface{}, selects map[string]interface{}) error {
+	return {{$first}}.dynamoService.Get(map[string]interface{}{
+		{{$first}}.dynamoService.hashName: hashKey,
+		{{if $composite -}}
+		{{$first}}.dynamoService.rangeName: rangeKey,	
+		{{- end}}
+	}, out, selects)
+}
+
+// Scan retrieves a list of all {{.Model.Ident.Pluralize.Pascalize}}
+func ({{$first}} {{$singlePascal}}DynamoService) Scan(out interface{}, selects map[string]interface{}) error {
+	return {{$first}}.dynamoService.Scan(out, selects)
+}
+
+// Delete deletes the {{$singlePascal}} with the given hashKey
+func ({{$first}} {{$singlePascal}}DynamoService) Delete(hashKey{{if $composite}}, rangeKey{{end}} interface{}) error {
+	return {{$first}}.dynamoService.Delete(map[string]interface{}{
+		{{$first}}.dynamoService.hashName: hashKey,
+		{{if $composite -}}
+		{{$first}}.dynamoService.rangeName: rangeKey,	
+		{{- end}}
+	})
+}

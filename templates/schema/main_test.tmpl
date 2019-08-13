@@ -1,0 +1,55 @@
+package main
+
+import (
+	"encoding/json"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/aws/aws-lambda-go/events"
+)
+
+func TestEmptyRequest(t *testing.T) {
+	resp, err := Handler(events.APIGatewayProxyRequest{})
+
+	assert.Equal(t, 500, resp.StatusCode)
+
+	assert.Error(t, err)
+	assert.EqualError(t, err, "unexpected end of JSON input")
+}
+
+func TestEmptyQuery(t *testing.T) {
+	req := requestBody{}
+	reqString, _ := json.Marshal(req)
+	resp, err := Handler(events.APIGatewayProxyRequest{
+		Body: string(reqString),
+	})
+
+	assert.Equal(t, 400, resp.StatusCode)
+
+	assert.Error(t, err)
+	assert.EqualError(t, err, "Must provide an operation.")
+}
+
+func TestWrongQuery(t *testing.T) {
+	req := requestBody{
+		Query: `query {
+			makingNoSense {
+				field
+			}
+		}`,
+	}
+	reqString, _ := json.Marshal(req)
+	resp, err := Handler(events.APIGatewayProxyRequest{
+		Body: string(reqString),
+	})
+
+	assert.Equal(t, 400, resp.StatusCode)
+
+	assert.Error(t, err)
+	assert.EqualError(t, err, "Cannot query field \"makingNoSense\" on type \"Query\".")
+}
+
+func TestCorrectQuery(t *testing.T) {
+	//TODO: Add working query to with valid response to up coverage
+}

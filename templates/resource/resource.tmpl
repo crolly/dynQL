@@ -1,0 +1,105 @@
+{{- $single := .Model.Ident.Singularize -}}
+{{- $singleCamel := $single.Camelize.String -}}
+{{- $singlePascal := $single.Pascalize.String -}}
+{{- $singleHuman := $single.Humanize.String -}}
+{{- $plural := .Model.Ident.Pluralize -}}
+{{- $pluralCamel := $plural.Camelize.String -}}
+{{- $pluralPascal := $plural.Pascalize.String -}}
+{{- $pluralHuman := $plural.Humanize.String -}}
+{{- $hash := Underscore (index .Model.KeySchema "HASH") -}}
+{{- $range := Underscore (index .Model.KeySchema "RANGE") -}}
+{{- $rangeVar := Camelize (index .Model.KeySchema "RANGE") -}}
+{{- $composite := .Model.CompositeKey -}}
+package models
+
+import (
+	"{{.Config.ImportPath}}/services"
+	"github.com/graphql-go/graphql"
+	"github.com/mitchellh/mapstructure"
+
+    {{ range $i := .Model.Imports -}}
+    "{{$i}}"
+    {{ end -}}
+)
+
+{{.Model}}
+
+var {{$singleCamel}}HashKey = "{{$hash}}"
+{{if $composite}}var {{$singleCamel}}RangeKey = "{{$range}}"{{end}}
+
+// Get{{$singlePascal}}Type returns the GraphQL Object for the {{$singleHuman}} Model
+func Get{{$singlePascal}}Type() *graphql.Object {
+	return graphQLType({{$singlePascal}}{})
+}
+
+// Get{{$singlePascal}}InputType returns the GraphQL InputObject for the {{$singleHuman}} Model
+func Get{{$singlePascal}}InputType() *graphql.InputObject {
+	return graphQLInputType({{$singlePascal}}{})
+}
+
+{{ range $m := .Model.Nested -}}
+{{ $pascal := $m.Ident.Pascalize.String -}}
+// Get{{$pascal}}Type returns the GraphQL Object for the {{$pascal}} Model
+func Get{{$pascal}}Type() *graphql.Object {
+	return graphQLType({{$pascal}}{})
+}
+// Get{{$pascal}}InputType returns the GraphQL InputObject for the {{$pascal}} Model
+func Get{{$pascal}}InputType() *graphql.InputObject {
+	return graphQLInputType({{$pascal}}{})
+}
+{{ end }}
+// Put{{$singlePascal}} is the Create/ Update method of the CRUDL to create/ update a single {{$singlePascal}} with given Information
+func Put{{$singlePascal}}(params graphql.ResolveParams) (*{{$singlePascal}}, error) {
+	i := params.Args["{{$singleCamel}}"]
+	{{$singleCamel}} := &{{$singlePascal}}{}
+
+	err := mapstructure.Decode(i, {{$singleCamel}})
+	if err != nil {
+		return nil, err
+	}
+
+	return {{$singleCamel}}, services.{{$singlePascal}}Service({{$singleCamel}}HashKey{{if $composite}}, {{$singleCamel}}RangeKey{{end}}).Put({{$singleCamel}})
+}
+
+// Get{{$singlePascal}} is the Read method of the CRUDL to retrive a single {{$singlePascal}} with given key(s)
+func Get{{$singlePascal}}(params graphql.ResolveParams) (*{{$singlePascal}}, error) {
+	{{$singleCamel}} := &{{$singlePascal}}{}
+	{{$hash}}, _ := params.Args["{{$hash}}"].(string)
+	{{if $composite -}}
+	{{$rangeVar}}, _ := params.Args["{{$range}}"].(string)
+	{{- end}}
+	selects, err := getSelectedFields(params)
+	if err != nil {
+		return nil, err
+	}
+	err = services.{{$singlePascal}}Service({{$singleCamel}}HashKey{{if $composite}}, {{$singleCamel}}RangeKey{{end}}).Get({{$hash}}{{if $composite}}, {{$rangeVar}}{{end}}, {{$singleCamel}}, selects)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return {{$singleCamel}}, err
+}
+
+// Get{{$pluralPascal}} is the List method of the CRUDL to retrieve the List of all {{$pluralPascal}}
+func Get{{$pluralPascal}}(params graphql.ResolveParams) ([]*{{$singlePascal}}, error) {
+	{{$pluralCamel}} := []*{{$singlePascal}}{}
+	selects, err := getSelectedFields(params)
+	if err != nil {
+		return nil, err
+	}
+	err = services.{{$singlePascal}}Service({{$singleCamel}}HashKey{{if $composite}}, {{$singleCamel}}RangeKey{{end}}).Scan(&{{$pluralCamel}}, selects)
+	if err != nil {
+		return nil, err
+	}
+	return {{$pluralCamel}}, err
+}
+
+// Delete{{$singlePascal}} is the Delete method of the CRUDL to delete a single {{$singlePascal}} with given key(s)
+func Delete{{$singlePascal}}(params graphql.ResolveParams) error {
+	{{$hash}}, _ := params.Args["{{$hash}}"].(string)
+	{{if $composite -}}
+	{{$rangeVar}}, _ := params.Args["{{$range}}"].(string)
+	{{- end}}
+	return services.{{$singlePascal}}Service({{$singleCamel}}HashKey{{if $composite}}, {{$singleCamel}}RangeKey{{end}}).Delete({{$hash}}{{if $composite}}, {{$rangeVar}}{{end}})
+}

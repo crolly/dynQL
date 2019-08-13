@@ -1,0 +1,75 @@
+{{- $single := .Model.Ident.Singularize -}}
+{{- $singleCamel := $single.Camelize -}}
+{{- $singlePascal := $single.Pascalize -}}
+{{- $plural := .Model.Ident.Singularize -}}
+{{- $pluralCamel := $plural.Camelize -}}
+{{- $pluralPascal := $plural.Pascalize -}}
+{{- $hash := Underscore (index .Model.KeySchema "HASH") -}}
+{{- $range := Underscore (index .Model.KeySchema "RANGE") -}}
+{{- $composite := .Model.CompositeKey -}}
+package schema_test
+
+import (
+	"fmt"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"{{.Config.ImportPath}}/handler/{{.Schema}}/schema"
+	"{{.Config.ImportPath}}/models"
+	"github.com/graphql-go/graphql"
+)
+
+func TestPut{{$singlePascal}}(t *testing.T) {
+	// enter test data
+	m := models.{{$singlePascal}}{}
+	q := TestQuery{
+		Query: `mutation create{{$singlePascal}}($m: {{$singlePascal}}Input){
+			{{$singleCamel}}({{$singleCamel}}:$m){
+			  {{ $hash }}
+			  {{if $composite}}{{ $range }}{{end}}
+			}
+		  }`,
+		Variables: map[string]interface{}{
+			"m": marshal(m),
+		},
+	}
+
+	params := graphql.Params{
+		Schema:         schema.Schema,
+		VariableValues: q.Variables,
+		RequestString:  q.Query,
+	}
+	result := graphql.Do(params)
+	for _, e := range result.Errors {
+		fmt.Println(e)
+	}
+
+	assert.Equal(t, 0, len(result.Errors))
+	// enter actual assertions
+}
+
+func TestList{{$singlePascal}}s(t *testing.T) {
+	q := TestQuery{
+		Query: `query {
+			{{$pluralPascal}} {
+			  {{ $hash }}
+			  {{if $composite}}{{ $range }}{{end}}
+			}
+		  }`,
+	}
+	params := graphql.Params{
+		Schema:         schema.Schema,
+		VariableValues: q.Variables,
+		RequestString:  q.Query,
+	}
+	result := graphql.Do(params)
+
+	for _, e := range result.Errors {
+		fmt.Println(e)
+	}
+
+	assert.Equal(t, 0, len(result.Errors))
+}
+
+// TODO: Implement TestRead + TestDelete

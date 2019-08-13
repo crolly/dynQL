@@ -1,0 +1,58 @@
+package main
+
+import (
+	"encoding/json"
+
+	"{{.Config.ImportPath}}/handler/{{.Schema}}/schema"
+
+	"github.com/aws/aws-lambda-go/events"
+	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/graphql-go/graphql"
+)
+
+type requestBody struct {
+	Query          string                 `json:"query"`
+	VariableValues map[string]interface{} `json:"variables"`
+	OperationName  string                 `json:"operationName"`
+}
+
+func executeQuery(request requestBody, schema graphql.Schema) (*graphql.Result, error) {
+	params := graphql.Params{
+		Schema:         schema,
+		VariableValues: request.VariableValues,
+		RequestString:  request.Query,
+		OperationName:  request.OperationName,
+	}
+	result := graphql.Do(params)
+
+	if result.HasErrors() {
+		return nil, result.Errors[0]
+	}
+
+	return result, nil
+}
+
+// Handler handles the incoming Request and responds with the Results of the GraphQL Query or an error
+func Handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	requestBody := requestBody{}
+	err := json.Unmarshal([]byte(request.Body), &requestBody)
+	if err != nil {
+		return events.APIGatewayProxyResponse{Body: err.Error(), StatusCode: 500}, err
+	}
+
+	graphQLResult, err := executeQuery(requestBody, schema.Schema)
+	if err != nil {
+		return events.APIGatewayProxyResponse{Body: err.Error(), StatusCode: 400}, err
+	}
+
+	responseJSON, err := json.Marshal(graphQLResult)
+	if err != nil {
+		return events.APIGatewayProxyResponse{Body: err.Error(), StatusCode: 400}, err
+	}
+
+	return events.APIGatewayProxyResponse{Body: string(responseJSON[:]), StatusCode: 200}, nil
+}
+
+func main() {
+	lambda.Start(Handler)
+}

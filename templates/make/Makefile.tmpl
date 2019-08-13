@@ -1,0 +1,18 @@
+bins = {{ range $fn := .Functions }}bin/{{TrimBinPrefix $fn.Handler}} {{ end }}
+debugs = {{ range $fn := .Functions }}debug/{{TrimBinPrefix $fn.Handler}} {{ end }}
+
+bin/%: handler/%/main.go
+		env GOOS=linux go build -ldflags="-s -w" -o $@ $<
+
+debug/%: handler/%/main.go
+		env GOARCH=amd64 GOOS=linux go build -gcflags='-N -l' -o $@ $<
+
+test:
+	go test ./... -cover
+
+build: vendor | $(bins)
+
+debug: vendor | $(debugs)
+
+vendor: Gopkg.toml
+	    dep ensure

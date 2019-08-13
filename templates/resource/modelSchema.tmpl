@@ -1,0 +1,92 @@
+{{- $single := .Model.Ident.Singularize -}}
+{{- $singleCamel := $single.Camelize.String -}}
+{{- $singlePascal := $single.Pascalize.String -}}
+{{- $singleHuman := $single.Humanize.String -}}
+{{- $plural := .Model.Ident.Pluralize -}}
+{{- $pluralCamel := $plural.Camelize.String -}}
+{{- $pluralPascal := $plural.Pascalize.String -}}
+{{- $pluralHuman := $plural.Humanize.String -}}
+{{- $hashAttr := Pascalize (index .Model.KeySchema "HASH") -}}
+{{- $hash := Underscore (index .Model.KeySchema "HASH") -}}
+{{- $rangeAttr := Pascalize (index .Model.KeySchema "RANGE") -}}
+{{- $range := Underscore (index .Model.KeySchema "RANGE") -}}
+{{- $composite := .Model.CompositeKey -}}
+package schema
+
+import (
+	"{{.Config.ImportPath}}/models"
+	"github.com/graphql-go/graphql"
+)
+
+var (
+	{{$singleCamel}}Type        = models.Get{{$singlePascal}}Type()
+	{{$singleCamel}}InputType   = models.Get{{$singlePascal}}InputType()
+)
+
+func {{$singleCamel}}Fields() {
+	// customizations to the {{$singleCamel}} type
+
+    // Get single {{$singleHuman}} 
+	queryFields["{{$singlePascal}}"] = &graphql.Field{
+		Type:        {{$singleCamel}}Type,
+		Description: "Get single {{$singleHuman}} with given ID",
+		Args: graphql.FieldConfigArgument{
+			"{{$hash}}": &graphql.ArgumentConfig{
+				Type:        graphql.String,
+				Description: "The {{$hashAttr}} of the {{$singleHuman}} to retrieve it",
+			},
+			{{if $composite -}}
+			"{{$range}}": &graphql.ArgumentConfig{
+				Type:        graphql.String,
+				Description: "The {{$rangeAttr}} of the {{$singleHuman}} to retrieve it",
+			},
+			{{- end}}
+		},
+		Resolve: func(params graphql.ResolveParams) (interface{}, error) {
+			return models.Get{{$singlePascal}}(params)
+		},
+	}
+    // Get list of all {{$pluralHuman}}
+	queryFields["{{$pluralPascal}}"] = &graphql.Field{
+		Type:        graphql.NewList({{$singleCamel}}Type),
+		Description: "Get list of all {{$pluralHuman}}",
+		Resolve: func(params graphql.ResolveParams) (interface{}, error) {
+			return models.Get{{$pluralPascal}}(params)
+		},
+	}
+
+    // Create single {{$singleHuman}} with information given in Request Body
+	mutationFields["{{$singlePascal}}"] = &graphql.Field{
+		Type: {{$singleCamel}}Type,
+        Description: "Create/ Update single {{$singleHuman}} with Information given in Request Body",
+		Args: graphql.FieldConfigArgument{
+			"{{$singleCamel}}": &graphql.ArgumentConfig{
+				Description: "{{$singlePascal}}Input Object used to create/ update the {{$singlePascal}} Object",
+				Type:        {{$singleCamel}}InputType,
+			},
+		},
+		Resolve: func(params graphql.ResolveParams) (interface{}, error) {
+			return models.Put{{$singlePascal}}(params)
+		},
+	}
+    // Delete single {{$singleHuman}}
+    mutationFields["delete{{$singlePascal}}"] = &graphql.Field{
+		Type:        {{$singleCamel}}Type,
+		Description: "Delete {{$singleHuman}} with given ID",
+		Args: graphql.FieldConfigArgument{
+			"{{$hash}}": &graphql.ArgumentConfig{
+				Type:        graphql.String,
+				Description: "The {{$hashAttr}} of the {{$singleHuman}}",
+			},
+			{{if $composite -}}
+			"{{$range}}": &graphql.ArgumentConfig{
+				Type:        graphql.String,
+				Description: "The {{$rangeAttr}} of the {{$singleHuman}}",
+			},
+			{{- end}}
+		},
+		Resolve: func(params graphql.ResolveParams) (interface{}, error) {
+			return params.Source, models.Delete{{$singlePascal}}(params)
+		},
+	}
+}

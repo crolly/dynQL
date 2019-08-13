@@ -1,0 +1,14 @@
+package models_test
+
+import (
+	"fmt"
+	"testing"
+
+	"{{.Config.ImportPath}}/models"
+)
+
+func Test{{.Model.Ident.Singularize.Pascalize}}(t *testing.T) {
+	{{First .Model.Ident.Camelize}} := models.Get{{.Model.Ident.Singularize.Pascalize}}Type()
+
+	fmt.Println({{First .Model.Ident.Camelize}})
+}

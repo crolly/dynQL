@@ -1,0 +1,36 @@
+package schema
+
+import (
+	"github.com/graphql-go/graphql"
+)
+
+// Schema represents the GraphQL Schema Object
+var Schema graphql.Schema
+var queryFields = graphql.Fields{}
+var mutationFields = graphql.Fields{}
+
+func init() {
+    {{ range $r := .Config.Resources -}}
+	// init model fields
+    "{{$r.Ident.Camelize}}Fields()"
+    {{ end -}}
+
+	// Schema - GraphQL Root Schema
+	var err error
+	Schema, err = graphql.NewSchema(graphql.SchemaConfig{
+		Query: graphql.NewObject(graphql.ObjectConfig{
+			Name:        "Query",
+			Description: "Root Query of the Schema",
+			Fields:      queryFields,
+		}),
+		Mutation: graphql.NewObject(graphql.ObjectConfig{
+			Name:        "Mutation",
+			Description: "Root Mutation of the Schema",
+			Fields:      mutationFields,
+		}),
+	})
+
+	if err != nil {
+		panic(err)
+	}
+}

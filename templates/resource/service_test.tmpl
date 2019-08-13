@@ -1,0 +1,84 @@
+{{- $single := .Model.Ident.Singularize -}}
+{{- $singleCamel := $single.Camelize.String -}}
+{{- $singlePascal := $single.Pascalize.String -}}
+{{- $singleUpper := $single.ToUpper.String -}}
+{{- $plural := .Model.Ident.Pluralize -}}
+{{- $pluralCamel := $plural.Camelize.String -}}
+{{- $pluralPascal := $plural.Pascalize.String -}}
+{{- $first := First $single.Camelize -}}
+{{- $hashAttr := Pascalize (index .Model.KeySchema "HASH") -}}
+{{- $hash := Underscore (index .Model.KeySchema "HASH") -}}
+{{- $rangeAttr := Pascalize (index .Model.KeySchema "RANGE") -}}
+{{- $range := Underscore (index .Model.KeySchema "RANGE") -}}
+{{- $composite := .Model.CompositeKey -}}
+package services_test
+
+import (
+	"os"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"{{.Config.ImportPath}}/models"
+	"{{.Config.ImportPath}}/services"
+	"github.com/gofrs/uuid"
+)
+
+var {{$singleCamel}}TestSelects = map[string]interface{}{
+	"{{$hash}}": true,	
+}
+
+func init() {
+	os.Setenv("LOCAL", "true")
+	os.Setenv("ENDPOINT", "http://localhost:8000")
+	os.Setenv("REGION", "eu-central-1")
+    os.Setenv("{{$singleUpper}}_TABLE_NAME", "{{.Config.ProjectName}}-{{$pluralCamel}}-test")
+}
+
+func TestPut{{$singlePascal}}(t *testing.T) {
+	{{$first}} := &models.{{$singlePascal}}{
+		{{$hashAttr}}:   uuid.Must(uuid.NewV4()).String(),
+		{{if $composite -}}
+		{{$rangeAttr}}:   uuid.Must(uuid.NewV4()).String(),
+		{{- end -}}
+	}
+	err := services.{{$singlePascal}}Service("{{$hash}}").Put({{$first}})
+
+	// TODO: add assertions
+	assert.NoError(t, err)
+}
+
+func TestGet{{$singlePascal}}(t *testing.T) {
+	{{$first}} := &models.{{$singlePascal}}{
+		{{$hashAttr}}:   uuid.Must(uuid.NewV4()).String(),
+		{{if $composite -}}
+		{{$rangeAttr}}:   uuid.Must(uuid.NewV4()).String(),
+		{{- end -}}
+	}
+	err := services.{{$singlePascal}}Service("{{$hash}}").Put({{$first}})
+	assert.NoError(t, err)
+
+	err = services.{{$singlePascal}}Service("{{$hash}}").Get({{$first}}.{{$hashAttr}}, &{{$first}}, userTestSelects)
+	// TODO: add assertions
+	assert.NoError(t, err)
+}
+
+func TestList{{$pluralPascal}}(t *testing.T) {
+	{{$first}}s := []*models.{{$singlePascal}}{}
+	err := services.{{$singlePascal}}Service("{{$hash}}"{{if $composite}}, "{{$range}}"{{end}}).Scan(&{{$first}}s, userTestSelects)
+
+	// TODO: add assertions
+	assert.NoError(t, err)
+}
+
+func TestDelete{{$singlePascal}}(t *testing.T) {
+	{{$first}} := &models.{{$singlePascal}}{
+		{{$hashAttr}}:   uuid.Must(uuid.NewV4()).String(),
+	}
+	err := services.{{$singlePascal}}Service("{{$hash}}"{{if $composite}}, "{{$range}}"{{end}}).Put({{$first}})
+	assert.NoError(t, err)
+
+	err = services.{{$singlePascal}}Service("{{$hash}}"{{if $composite}}, "{{$range}}"{{end}}).Delete({{$first}}.{{$hashAttr}}{{if $composite}}, {{$first}}.{{$rangeAttr}}{{end}})
+	// TODO: add assertions
+	assert.NoError(t, err)
+}
