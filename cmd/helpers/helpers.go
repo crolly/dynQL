@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"text/template"
 
@@ -82,6 +83,16 @@ func LoadTemplateFromBox(b *packr.Box, file string) (*template.Template, error) 
 		},
 		"Underscore": func(s string) string {
 			return flect.Underscore(s)
+		},
+		"UnderscoreList": func(as interface{}) string {
+			s := ""
+			v := reflect.ValueOf(as)
+			iter := v.MapRange()
+			for iter.Next() {
+				ident := iter.Value().FieldByName("Ident").Interface().(flect.Ident)
+				s += "\"" + ident.Underscore().String() + "\"" + ","
+			}
+			return strings.TrimSuffix(s, ",")
 		},
 		"Camelize": func(s string) string {
 			return flect.Camelize(s)

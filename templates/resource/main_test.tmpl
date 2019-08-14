@@ -1,0 +1,112 @@
+package main
+
+import (
+	"encoding/json"
+	"os"
+	"testing"
+
+	"github.com/mitchellh/mapstructure"
+
+	"{{.Config.ImportPath}}/models"
+	"{{.Config.ImportPath}}/services"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/aws/aws-lambda-go/events"
+)
+
+type ResponseData struct {
+	Data map[string]interface{}
+}
+
+func init() {
+	os.Setenv("LOCAL", "true")
+	os.Setenv("ENDPOINT", "http://localhost:8000")
+	os.Setenv("REGION", "eu-central-1")
+	os.Setenv("ROOM_TABLE_NAME", "dojo-graphql-api-rooms-test")
+}
+
+func TestEmptyRequest(test *testing.T) {
+	resp, err := Handler(events.APIGatewayProxyRequest{})
+
+	assert.Equal(test, 500, resp.StatusCode)
+
+	assert.Error(test, err)
+	assert.EqualError(test, err, "unexpected end of JSON input")
+}
+
+func TestEmptyQuery(test *testing.T) {
+	req := requestBody{}
+	reqString, _ := json.Marshal(req)
+	resp, err := Handler(events.APIGatewayProxyRequest{
+		Body: string(reqString),
+	})
+
+	assert.Equal(test, 400, resp.StatusCode)
+
+	assert.Error(test, err)
+	assert.EqualError(test, err, "Must provide an operation.")
+}
+
+func TestWrongQuery(test *testing.T) {
+	req := requestBody{
+		Query: `query {
+			makingNoSense {
+				field
+			}
+		}`,
+	}
+	reqString, _ := json.Marshal(req)
+	resp, err := Handler(events.APIGatewayProxyRequest{
+		Body: string(reqString),
+	})
+
+	assert.Equal(test, 400, resp.StatusCode)
+
+	assert.Error(test, err)
+	assert.EqualError(test, err, "Cannot query field \"makingNoSense\" on type \"Query\".")
+}
+
+{{ range $r := .Config.Resources }}
+{{- $single := $r.Ident.Singularize -}}
+{{- $singleCamel := $single.Camelize.String -}}
+{{- $singlePascal := $single.Pascalize.String -}}
+{{- $plural := $r.Ident.Pluralize -}}
+{{- $pluralPascal := $plural.Pascalize.String -}}
+func TestList{{$pluralPascal}}(test *testing.T) {
+	{{$singleCamel}}TestSelects := map[string]interface{}{
+		{{- range $a := $r.Attributes}}
+		"{{$a.Ident.Underscore}}": true,
+		{{- end}}
+	}
+	expected := []*models.{{$singlePascal}}{}
+	err := services.{{$singlePascal}}Service({{UnderscoreList $r.Attributes}}).Scan(&expected, {{$singleCamel}}TestSelects)
+	assert.NoError(test, err)
+
+	req := requestBody{
+		Query: `query {
+			{{$pluralPascal}} {
+				{{- range $a := $r.Attributes}}
+				{{$a.Ident.Underscore}}
+				{{- end}}
+			}
+		}`,
+	}
+	reqString, _ := json.Marshal(req)
+	resp, err := Handler(events.APIGatewayProxyRequest{
+		Body: string(reqString),
+	})
+
+	assert.Equal(test, 200, resp.StatusCode)
+	assert.NoError(test, err)
+
+	data := ResponseData{}
+	err = json.Unmarshal([]byte(resp.Body), &data)
+	assert.NoError(test, err)
+
+	actual := []*models.{{$singlePascal}}{}
+	mapstructure.Decode(data.Data["{{$pluralPascal}}"], &actual)
+
+	assert.ElementsMatch(test, expected, actual)
+}
+{{- end}}

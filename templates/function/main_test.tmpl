@@ -6,6 +6,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test{{.Function.Pascalize}}(t *testing.T) {
-	assert.True(t, true)
+func Test{{.Function.Pascalize}}(test *testing.T) {
+	assert.True(test, true)
 }

@@ -425,7 +425,6 @@ func (c DQLConfig) RemoveResourceFiles(schemaName, resourceName string) error {
 		filepath.Join(c.ProjectPath, "handler", schemaName, "schema", f),
 		filepath.Join(c.ProjectPath, "handler", schemaName, "schema", t),
 		filepath.Join(c.ProjectPath, "models", f),
-		filepath.Join(c.ProjectPath, "models", t),
 		filepath.Join(c.ProjectPath, "services", f),
 		filepath.Join(c.ProjectPath, "services", t),
 	}

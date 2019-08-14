@@ -1,6 +1,7 @@
 {{- $single := .Model.Ident.Singularize -}}
 {{- $singleCamel := $single.Camelize -}}
 {{- $singlePascal := $single.Pascalize -}}
+{{- $first := First $single.Camelize -}}
 {{- $plural := .Model.Ident.Pluralize -}}
 {{- $pluralCamel := $plural.Camelize -}}
 {{- $pluralPascal := $plural.Pascalize -}}
@@ -25,40 +26,107 @@ import (
 
 	"{{.Config.ImportPath}}/handler/{{.Schema}}/schema"
 	"{{.Config.ImportPath}}/models"
+	"{{.Config.ImportPath}}/services"
 	"github.com/graphql-go/graphql"
+)
+
+var (
+	{{$singleCamel}}TestSelects = map[string]interface{}{
+		"{{$hash}}": true,	
+		{{- if $composite }}
+		"{{$range}}": true, 
+		{{- end }}
+	}
+
+	sliceLength = 10
 )
 
 func init() {
 	os.Setenv("{{$single.ToUpper}}_TABLE_NAME", "{{.Config.ProjectName}}-{{$pluralCamel}}-test")
 }
 
-func cleanupModel(m models.{{$singlePascal}}) error {
+func new{{$singlePascal}}Model() *models.{{$singlePascal}} {
+	// you can add fake data here
+	return &models.{{$singlePascal}}{
+		{{$hashAttr}}: uuid.Must(uuid.NewV4()).String(),
+		{{- if $composite }}
+		{{$rangeAttr}}: uuid.Must(uuid.NewV4()).String(), 
+		{{- end }}
+	}
+}
+
+func new{{$singlePascal}}ModelSlice() []*models.{{$singlePascal}} {
+	s := []*models.{{$singlePascal}}{}
+	for i := 0; i < sliceLength; i++ {
+		s = append(s, new{{$singlePascal}}Model())
+	}
+
+	return s
+}
+
+func cleanup{{$singlePascal}}Model({{$first}} *models.{{$singlePascal}}) error {
 	params := graphql.ResolveParams{
 		Args: map[string]interface{}{
-			"{{ $hash }}": m.{{$hashAttr}},
+			"{{ $hash }}": {{$first}}.{{$hashAttr}},
 			{{- if $composite}}
-			"{{ $range }}": m.{{$rangeAttr}},
+			"{{ $range }}": {{$first}}.{{$rangeAttr}},
 			{{- end}}	
 		},
 	}
 	return models.Delete{{$singlePascal}}(params)
 }
 
-func cleanupSlice() {
-	
+func cleanup{{$singlePascal}}Slice(s []*models.{{$singlePascal}}) []error {
+	errs := []error{}
+	for _, {{$first}} := range s {
+		err := cleanup{{$singlePascal}}Model({{$first}})
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	return errs
 }
 
-func TestPut{{$singlePascal}}(t *testing.T) {
-	// enter test data
-	expected := models.{{$singlePascal}}{
-		{{$hashAttr}}: uuid.Must(uuid.NewV4()).String(),
-		{{- if $composite}}
-		{{$rangeAttr}}: uuid.Must(uuid.NewV4()).String(),
-		{{- end}}
-	}
+func TestList{{$pluralPascal}}(test *testing.T) {
+	// Test List{{$pluralPascal}}
+	expected := []*models.{{$singlePascal}}{}
+	err := services.{{$singlePascal}}Service("{{$hash}}"{{if $composite}}, "{{$range}}"{{end}}).Scan(&expected, {{$singleCamel}}TestSelects)
+	assert.NoError(test, err)
+
 	q := TestQuery{
-		Query: `mutation create{{$singlePascal}}($m: {{$singlePascal}}Input){
-			{{$singlePascal}}({{$singleCamel}}:$m){
+		Query: `query {
+			{{$pluralPascal}} {
+				{{ $hash }}
+				{{- if $composite}}
+				{{ $range }}
+				{{- end}}
+			}
+		}`,
+	}
+	params := graphql.Params{
+		Schema:         schema.Schema,
+		VariableValues: q.Variables,
+		RequestString:  q.Query,
+	}
+	result := graphql.Do(params)
+	assert.Equal(test, 0, len(result.Errors))
+
+	actual := []*models.{{$singlePascal}}{}
+	mapstructure.Decode(result.Data.(map[string]interface{})["{{$pluralPascal}}"], &actual)
+
+	assert.ElementsMatch(test, expected, actual)
+
+	cleanup{{$singlePascal}}Slice(actual)
+}
+
+
+func TestCreateAndRead{{$singlePascal}}(test *testing.T) {
+	// Test Put{{$singlePascal}}
+	expected := new{{$singlePascal}}Model()
+	q := TestQuery{
+		Query: `mutation create{{$singlePascal}}(${{$first}}: {{$singlePascal}}Input){
+			{{$singlePascal}}({{$singleCamel}}:${{$first}}){
 			  {{ $hash }}
 			  {{- if $composite}}
 			  {{ $range }}
@@ -66,7 +134,7 @@ func TestPut{{$singlePascal}}(t *testing.T) {
 			}
 		  }`,
 		Variables: map[string]interface{}{
-			"m": structs.Map(expected),
+			"{{$first}}": structs.Map(expected),
 		},
 	}
 
@@ -80,26 +148,57 @@ func TestPut{{$singlePascal}}(t *testing.T) {
 		fmt.Println(e)
 	}
 
-	assert.Equal(t, 0, len(result.Errors))
-	actual := models.{{$singlePascal}}{}
-	err := mapstructure.Decode(result.Data.(map[string]interface{})["Room"], &actual)
-	assert.NoError(t, err)
-	assert.Equal(t, expected, actual)
+	assert.Equal(test, 0, len(result.Errors))
 
-	err = cleanupModel(expected)
-	assert.NoError(t, err)
+	// Test Read{{$pluralPascal}}
+	hashKey := expected.{{$hashAttr}}
+	{{- if $composite}}
+	rangeKey := expected.{{$rangeAttr}}
+	{{- end}}
+	q = TestQuery{
+		Query: fmt.Sprintf(`query {
+			{{$singlePascal}}({{$hash}}: "%s"{{if $composite}}, {{$range}}: "%s"{{end}}) {
+				{{ $hash }}
+				{{- if $composite}}
+				{{ $range }}
+				{{- end}}
+			}
+		}`, hashKey{{if $composite}}, rangeKey{{end}}),
+	}
+	params = graphql.Params{
+		Schema:         schema.Schema,
+		VariableValues: q.Variables,
+		RequestString:  q.Query,
+	}
+	result = graphql.Do(params)
+	assert.Equal(test, 0, len(result.Errors))
+
+	actual := &models.{{$singlePascal}}{}
+	mapstructure.Decode(result.Data.(map[string]interface{})["{{$singlePascal}}"], &actual)
+
+	assert.Equal(test, expected, actual)
+
+	cleanup{{$singlePascal}}Model(actual)
 }
 
-func TestList{{$singlePascal}}s(t *testing.T) {
+func TestDelete{{$singlePascal}}(test *testing.T) {
+	{{$first}} := new{{$singlePascal}}Model()
+	err := services.{{$singlePascal}}Service("{{$hash}}"{{if $composite}}, "{{$range}}"{{end}}).Put({{$first}})
+	assert.NoError(test, err)
+
+	hashKey := {{$first}}.{{$hashAttr}}
+	{{- if $composite}}
+	rangeKey := {{$first}}.{{$rangeAttr}}
+	{{- end}}
 	q := TestQuery{
-		Query: `query {
-			{{$pluralPascal}} {
-			  {{ $hash }}
-			  {{- if $composite}}
-			  {{ $range }}
-			  {{- end}}
+		Query: fmt.Sprintf(`mutation {
+			delete{{$singlePascal}}({{$hash}}: "%s"{{if $composite}}, {{$range}}: "%s"{{end}}) {
+				{{ $hash }}
+				{{- if $composite}}
+				{{ $range }}
+				{{- end}}
 			}
-		  }`,
+		}`, hashKey{{if $composite}}, rangeKey{{end}}),
 	}
 	params := graphql.Params{
 		Schema:         schema.Schema,
@@ -107,12 +206,9 @@ func TestList{{$singlePascal}}s(t *testing.T) {
 		RequestString:  q.Query,
 	}
 	result := graphql.Do(params)
+	assert.Equal(test, 0, len(result.Errors))
 
-	for _, e := range result.Errors {
-		fmt.Println(e)
-	}
-
-	assert.Equal(t, 0, len(result.Errors))
+	actual := &models.{{$singlePascal}}{}
+	err = services.{{$singlePascal}}Service("{{$hash}}"{{if $composite}}, "{{$range}}"{{end}}).Get({{$first}}.{{$hashAttr}}, actual, {{$singleCamel}}TestSelects)
+	assert.Error(test, err, "dynamo: no item found")
 }
-
-// TODO: Implement TestRead + TestDelete

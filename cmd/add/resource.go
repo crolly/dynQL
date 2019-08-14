@@ -106,7 +106,6 @@ func renderResourceTemplates(config *models.DQLConfig, model *models.Model, sche
 		"models": {
 			"model",
 			"resource",
-			"resource_test",
 		},
 		"schema": {
 			"schema",
@@ -117,6 +116,9 @@ func renderResourceTemplates(config *models.DQLConfig, model *models.Model, sche
 			"dynamo",
 			"service",
 			"service_test",
+		},
+		"main": {
+			"main_test",
 		},
 	}
 
@@ -131,6 +133,8 @@ func renderResourceTemplates(config *models.DQLConfig, model *models.Model, sche
 		var f string
 		if g == "schema" {
 			f = filepath.Join(config.ProjectPath, "handler", schema, "schema")
+		} else if g == "main" {
+			f = filepath.Join(config.ProjectPath, "handler", schema)
 		} else {
 			f = filepath.Join(config.ProjectPath, g)
 		}

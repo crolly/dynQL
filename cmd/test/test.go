@@ -58,7 +58,7 @@ var (
 				return err
 			}
 
-			t := "go test -cover -p 1"
+			t := "go test -cover"
 			if profile {
 				err = helpers.RunCmd("/bin/sh", "-c", t+" -coverprofile=cover.out ./...")
 				if err != nil {

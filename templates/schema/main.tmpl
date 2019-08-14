@@ -45,11 +45,7 @@ func Handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		return events.APIGatewayProxyResponse{Body: err.Error(), StatusCode: 400}, err
 	}
 
-	responseJSON, err := json.Marshal(graphQLResult)
-	if err != nil {
-		return events.APIGatewayProxyResponse{Body: err.Error(), StatusCode: 400}, err
-	}
-
+	responseJSON, _ := json.Marshal(graphQLResult)
 	return events.APIGatewayProxyResponse{Body: string(responseJSON[:]), StatusCode: 200}, nil
 }
 
