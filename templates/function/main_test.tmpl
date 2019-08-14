@@ -1,11 +1,20 @@
 package main
 
 import (
+	"encoding/json"
 	"testing"
 
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/stretchr/testify/assert"
 )
 
 func Test{{.Function.Pascalize}}(test *testing.T) {
-	assert.True(test, true)
+	resp, err := Handler(events.APIGatewayProxyRequest{})
+
+	assert.Equal(test, 200, resp.StatusCode)
+	assert.NoError(test, err)
+
+	data := map[string]string{}
+	err = json.Unmarshal([]byte(resp), &data)
+	assert.Equal(test, "{{.Function.Pascalize}} invoked successfully", data["msg"])
 }
