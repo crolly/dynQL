@@ -187,7 +187,8 @@ func selectedFieldsFromSelections(params graphql.ResolveParams, selections []ast
 	return
 }
 
-func decode(in, out interface{}) error {
+// Decode reads a map[string]interface{} into a struct
+func Decode(in, out interface{}) error {
 	d, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		TagName: "json",
 		Result:  out,

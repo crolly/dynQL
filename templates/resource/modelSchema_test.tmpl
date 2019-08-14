@@ -111,7 +111,7 @@ func TestList{{$pluralPascal}}(test *testing.T) {
 	assert.Equal(test, 0, len(result.Errors))
 
 	actual := []*models.{{$singlePascal}}{}
-	mapstructure.Decode(result.Data.(map[string]interface{})["{{$pluralPascal}}"], &actual)
+	models.Decode(result.Data.(map[string]interface{})["{{$pluralPascal}}"], &actual)
 
 	assert.ElementsMatch(test, expected, actual)
 
@@ -172,7 +172,7 @@ func TestCreateAndRead{{$singlePascal}}(test *testing.T) {
 	assert.Equal(test, 0, len(result.Errors))
 
 	actual := &models.{{$singlePascal}}{}
-	mapstructure.Decode(result.Data.(map[string]interface{})["{{$singlePascal}}"], &actual)
+	models.Decode(result.Data.(map[string]interface{})["{{$singlePascal}}"], &actual)
 
 	assert.Equal(test, expected, actual)
 

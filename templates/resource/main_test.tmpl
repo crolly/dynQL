@@ -108,7 +108,7 @@ func TestList{{$pluralPascal}}(test *testing.T) {
 	assert.NoError(test, err)
 
 	actual := []*models.{{$singlePascal}}{}
-	mapstructure.Decode(data.Data["{{$pluralPascal}}"], &actual)
+	models.Decode(data.Data["{{$pluralPascal}}"], &actual)
 
 	assert.ElementsMatch(test, expected, actual)
 }
