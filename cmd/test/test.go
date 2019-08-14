@@ -58,7 +58,7 @@ var (
 				return err
 			}
 
-			t := "go test -cover"
+			t := "go test -cover -p 1"
 			if profile {
 				err = helpers.RunCmd("/bin/sh", "-c", t+" -coverprofile=cover.out ./...")
 				if err != nil {
@@ -71,12 +71,10 @@ var (
 		},
 	}
 
-	list           string
 	force, profile bool
 )
 
 func init() {
-	TestCmd.Flags().StringVarP(&list, "list", "l", "all", "comma separated list of resources/ function groups to debug")
 	TestCmd.Flags().BoolVarP(&force, "force overwrite", "f", false, "force overwrite existing tables (might be necessary if you changed you table definition - e.g. new index)")
 	TestCmd.Flags().BoolVarP(&profile, "profile coverage", "p", false, "show the code coverage profile (not compatibale with list flag)")
 }

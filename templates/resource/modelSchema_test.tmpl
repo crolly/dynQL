@@ -37,8 +37,6 @@ var (
 		"{{$range}}": true, 
 		{{- end }}
 	}
-
-	sliceLength = 10
 )
 
 func init() {
@@ -57,7 +55,7 @@ func new{{$singlePascal}}Model() *models.{{$singlePascal}} {
 
 func new{{$singlePascal}}ModelSlice() []*models.{{$singlePascal}} {
 	s := []*models.{{$singlePascal}}{}
-	for i := 0; i < sliceLength; i++ {
+	for i := 0; i < 10; i++ {
 		s = append(s, new{{$singlePascal}}Model())
 	}
 
@@ -209,6 +207,6 @@ func TestDelete{{$singlePascal}}(test *testing.T) {
 	assert.Equal(test, 0, len(result.Errors))
 
 	actual := &models.{{$singlePascal}}{}
-	err = services.{{$singlePascal}}Service("{{$hash}}"{{if $composite}}, "{{$range}}"{{end}}).Get({{$first}}.{{$hashAttr}}, actual, {{$singleCamel}}TestSelects)
+	err = services.{{$singlePascal}}Service("{{$hash}}"{{if $composite}}, "{{$range}}"{{end}}).Get({{$first}}.{{$hashAttr}}{{if $composite}}, {{$first}}.{{$rangeAttr}}{{end}}, actual, {{$singleCamel}}TestSelects)
 	assert.Error(test, err, "dynamo: no item found")
 }

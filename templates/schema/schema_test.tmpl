@@ -12,5 +12,5 @@ type TestQuery struct {
 func init() {
 	os.Setenv("LOCAL", "true")
 	os.Setenv("ENDPOINT", "http://localhost:8000")
-	os.Setenv("REGION", "eu-central-1")
+	os.Setenv("REGION", "{{.Config.Region}}")
 }

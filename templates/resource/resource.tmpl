@@ -54,7 +54,7 @@ func Put{{$singlePascal}}(params graphql.ResolveParams) (*{{$singlePascal}}, err
 	i := params.Args["{{$singleCamel}}"]
 	{{$singleCamel}} := &{{$singlePascal}}{}
 
-	err := mapstructure.Decode(i, {{$singleCamel}})
+	err := decode(i, {{$singleCamel}})
 	if err != nil {
 		return nil, err
 	}

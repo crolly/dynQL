@@ -22,8 +22,10 @@ type ResponseData struct {
 func init() {
 	os.Setenv("LOCAL", "true")
 	os.Setenv("ENDPOINT", "http://localhost:8000")
-	os.Setenv("REGION", "eu-central-1")
-	os.Setenv("ROOM_TABLE_NAME", "dojo-graphql-api-rooms-test")
+	os.Setenv("REGION", "{{.Config.Region}}")
+	{{- range $r := .Config.Resources}}
+	os.Setenv("{{$r.Ident.Singularize.ToUpper}}_TABLE_NAME", "{{.Config.ProjectName}}-{{$r.Ident.Pluralize.Camelize}}-test")
+	{{- end}}
 }
 
 func TestEmptyRequest(test *testing.T) {
@@ -80,6 +82,7 @@ func TestList{{$pluralPascal}}(test *testing.T) {
 		{{- end}}
 	}
 	expected := []*models.{{$singlePascal}}{}
+	// TODO: check order of keys for the service. might be swapped
 	err := services.{{$singlePascal}}Service({{UnderscoreList $r.Attributes}}).Scan(&expected, {{$singleCamel}}TestSelects)
 	assert.NoError(test, err)
 
@@ -109,4 +112,4 @@ func TestList{{$pluralPascal}}(test *testing.T) {
 
 	assert.ElementsMatch(test, expected, actual)
 }
-{{- end}}
+{{end}}
