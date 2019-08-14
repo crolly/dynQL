@@ -7,6 +7,7 @@
 {{- $pluralPascal := $plural.Pascalize.String -}}
 {{- $pluralHuman := $plural.Humanize.String -}}
 {{- $hash := Underscore (index .Model.KeySchema "HASH") -}}
+{{- $hashVar := Camelize (index .Model.KeySchema "HASH") -}}
 {{- $range := Underscore (index .Model.KeySchema "RANGE") -}}
 {{- $rangeVar := Camelize (index .Model.KeySchema "RANGE") -}}
 {{- $composite := .Model.CompositeKey -}}
@@ -64,7 +65,7 @@ func Put{{$singlePascal}}(params graphql.ResolveParams) (*{{$singlePascal}}, err
 // Get{{$singlePascal}} is the Read method of the CRUDL to retrive a single {{$singlePascal}} with given key(s)
 func Get{{$singlePascal}}(params graphql.ResolveParams) (*{{$singlePascal}}, error) {
 	{{$singleCamel}} := &{{$singlePascal}}{}
-	{{$hash}}, _ := params.Args["{{$hash}}"].(string)
+	{{$hashVar}}, _ := params.Args["{{$hash}}"].(string)
 	{{if $composite -}}
 	{{$rangeVar}}, _ := params.Args["{{$range}}"].(string)
 	{{- end}}
@@ -72,7 +73,7 @@ func Get{{$singlePascal}}(params graphql.ResolveParams) (*{{$singlePascal}}, err
 	if err != nil {
 		return nil, err
 	}
-	err = services.{{$singlePascal}}Service({{$singleCamel}}HashKey{{if $composite}}, {{$singleCamel}}RangeKey{{end}}).Get({{$hash}}{{if $composite}}, {{$rangeVar}}{{end}}, {{$singleCamel}}, selects)
+	err = services.{{$singlePascal}}Service({{$singleCamel}}HashKey{{if $composite}}, {{$singleCamel}}RangeKey{{end}}).Get({{$hashVar}}{{if $composite}}, {{$rangeVar}}{{end}}, {{$singleCamel}}, selects)
 
 	if err != nil {
 		return nil, err
@@ -97,9 +98,9 @@ func Get{{$pluralPascal}}(params graphql.ResolveParams) ([]*{{$singlePascal}}, e
 
 // Delete{{$singlePascal}} is the Delete method of the CRUDL to delete a single {{$singlePascal}} with given key(s)
 func Delete{{$singlePascal}}(params graphql.ResolveParams) error {
-	{{$hash}}, _ := params.Args["{{$hash}}"].(string)
+	{{$hashVar}}, _ := params.Args["{{$hash}}"].(string)
 	{{if $composite -}}
 	{{$rangeVar}}, _ := params.Args["{{$range}}"].(string)
 	{{- end}}
-	return services.{{$singlePascal}}Service({{$singleCamel}}HashKey{{if $composite}}, {{$singleCamel}}RangeKey{{end}}).Delete({{$hash}}{{if $composite}}, {{$rangeVar}}{{end}})
+	return services.{{$singlePascal}}Service({{$singleCamel}}HashKey{{if $composite}}, {{$singleCamel}}RangeKey{{end}}).Delete({{$hashVar}}{{if $composite}}, {{$rangeVar}}{{end}})
 }
