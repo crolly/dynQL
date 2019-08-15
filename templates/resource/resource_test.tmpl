@@ -6,12 +6,11 @@
 {{- $pluralCamel := $plural.Camelize.String -}}
 {{- $pluralPascal := $plural.Pascalize.String -}}
 {{- $pluralHuman := $plural.Humanize.String -}}
+{{- $first := First $single.Camelize -}}
 {{- $hash := Underscore (index .Model.KeySchema "HASH") -}}
 {{- $hashAttr := Pascalize (index .Model.KeySchema "HASH") -}}
-{{- $hashVar := Camelize (index .Model.KeySchema "HASH") -}}
 {{- $range := Underscore (index .Model.KeySchema "RANGE") -}}
 {{- $rangeAttr := Pascalize (index .Model.KeySchema "RANGE") -}}
-{{- $rangeVar := Camelize (index .Model.KeySchema "RANGE") -}}
 {{- $composite := .Model.CompositeKey -}}
 package models_test
 
@@ -142,11 +141,11 @@ func TestGet{{$singlePascal}}(test *testing.T) {
 
 	params := getParams()
 	params.Args = map[string]interface{}{
-		"{{$hash}}":  expected.{{$hashVar}},
+		"{{$hash}}":  expected.{{$hashAttr}},
         {{- if $composite}}
-		"{{$range}}": expected.{{$rangeVar}},
+		"{{$range}}": expected.{{$rangeAttr}},
         {{- end}}
-
+    }
 	actual, err := models.Get{{$singlePascal}}(params)
 	assert.NoError(test, err)
 	assert.Equal(test, expected, actual)
