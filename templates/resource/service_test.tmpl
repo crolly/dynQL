@@ -81,7 +81,7 @@ func TestPutAndGet{{$singlePascal}}(test *testing.T) {
 	assert.NoError(test, err)
 
 	actual := &models.{{$singlePascal}}{}
-	err = services.{{$singlePascal}}Service("{{$hash}}"{{if $composite}}, "{{$range}}"{{end}}).Get(actual, {{$singleCamel}}TestSelects, {{$first}}.{{$hashAttr}}{{if $composite}}, {{$first}}.{{$rangeAttr}}{{end}})
+	err = services.{{$singlePascal}}Service("{{$hash}}"{{if $composite}}, "{{$range}}"{{end}}).Get(actual, {{$singleCamel}}TestSelects, expected.{{$hashAttr}}{{if $composite}}, expected.{{$rangeAttr}}{{end}})
 	assert.NoError(test, err)
 
 	assert.Equal(test, expected, actual)	

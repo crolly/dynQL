@@ -17,8 +17,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/mitchellh/mapstructure"
-
 	"github.com/crolly/structs"
 	"github.com/gofrs/uuid"	
 
@@ -207,6 +205,6 @@ func TestDelete{{$singlePascal}}(test *testing.T) {
 	assert.Equal(test, 0, len(result.Errors))
 
 	actual := &models.{{$singlePascal}}{}
-	err = services.{{$singlePascal}}Service("{{$hash}}"{{if $composite}}, "{{$range}}"{{end}}).Get({{$first}}.{{$hashAttr}}{{if $composite}}, {{$first}}.{{$rangeAttr}}{{end}}, actual, {{$singleCamel}}TestSelects)
+	err = services.{{$singlePascal}}Service("{{$hash}}"{{if $composite}}, "{{$range}}"{{end}}).Get(actual, {{$singleCamel}}TestSelects, {{$first}}.{{$hashAttr}}{{if $composite}}, {{$first}}.{{$rangeAttr}}{{end}})
 	assert.Error(test, err, "dynamo: no item found")
 }
