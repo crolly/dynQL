@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/gobuffalo/flect"
+
 	"github.com/crolly/dynQL/cmd/helpers"
 	"github.com/imdario/mergo"
 	"github.com/joho/godotenv"
@@ -445,7 +447,9 @@ func (s *ServerlessConfig) SetResourceWithModel(c *DQLConfig, m *Model) {
 }
 
 func (s *ServerlessConfig) removeResource(resourceName string) *ServerlessConfig {
-	delete(s.Resources.Resources, resourceName)
+	ident := flect.New(resourceName)
+	delete(s.Resources.Resources, ident.Pascalize().String()+"DynamoDbTable")
+	delete(s.Provider.Environments, ident.Singularize().ToUpper().String()+"_TABLE_NAME")
 
 	return s
 }

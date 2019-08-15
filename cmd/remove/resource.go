@@ -51,9 +51,11 @@ var (
 				return err
 			}
 
-			err = reRenderSchemaTemplate(c, schema)
-			if err != nil {
-				return err
+			if len(schema) > 0 {
+				err = reRenderSchemaTemplate(c, schema)
+				if err != nil {
+					return err
+				}
 			}
 
 			return c.Write()
@@ -71,8 +73,6 @@ func init() {
 	RemoveCmd.AddCommand(resourceCmd)
 	resourceCmd.Flags().StringVarP(&schema, "schema", "s", "", "Name of the Schema the Resource should be removed from")
 	resourceCmd.Flags().BoolVarP(&deleteTable, "deleteTable", "d", false, "Delete all Tables from this Resource in the local DynamoDB")
-
-	resourceCmd.MarkFlagRequired("schema")
 }
 
 func reRenderSchemaTemplate(config *models.DQLConfig, schema string) error {

@@ -422,11 +422,14 @@ func (c DQLConfig) RemoveResourceFiles(schemaName, resourceName string) error {
 	f := resourceName + ".go"
 	t := resourceName + "_test.go"
 	files := []string{
-		filepath.Join(c.ProjectPath, "handler", schemaName, "schema", f),
-		filepath.Join(c.ProjectPath, "handler", schemaName, "schema", t),
 		filepath.Join(c.ProjectPath, "models", f),
 		filepath.Join(c.ProjectPath, "services", f),
 		filepath.Join(c.ProjectPath, "services", t),
+	}
+
+	if len(schemaName) > 0 {
+		files = append(files, filepath.Join(c.ProjectPath, "handler", schemaName, "schema", f),
+			filepath.Join(c.ProjectPath, "handler", schemaName, "schema", t))
 	}
 
 	for _, file := range files {
