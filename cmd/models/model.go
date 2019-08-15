@@ -194,6 +194,8 @@ func (m *Model) addImport(goType string) {
 		m.Imports = helpers.AppendStringIfMissing(m.Imports, "time")
 	case "uuid.UUID":
 		m.Imports = helpers.AppendStringIfMissing(m.Imports, "github.com/gofrs/uuid")
+	case "json.RawMessage":
+		m.Imports = helpers.AppendStringIfMissing(m.Imports, "encoding/json")
 	}
 }
 

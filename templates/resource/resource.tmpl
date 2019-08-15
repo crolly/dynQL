@@ -14,13 +14,11 @@
 package models
 
 import (
+	{{- range $i := .Model.Imports }}
+    "{{$i}}"
+    {{- end }}
 	"{{.Config.ImportPath}}/services"
 	"github.com/graphql-go/graphql"
-	"github.com/mitchellh/mapstructure"
-
-    {{ range $i := .Model.Imports -}}
-    "{{$i}}"
-    {{ end -}}
 )
 
 {{.Model}}
@@ -73,7 +71,7 @@ func Get{{$singlePascal}}(params graphql.ResolveParams) (*{{$singlePascal}}, err
 	if err != nil {
 		return nil, err
 	}
-	err = services.{{$singlePascal}}Service({{$singleCamel}}HashName{{if $composite}}, {{$singleCamel}}RangeName{{end}}).Get({{$hashVar}}{{if $composite}}, {{$rangeVar}}{{end}}, {{$singleCamel}}, selects)
+	err = services.{{$singlePascal}}Service({{$singleCamel}}HashName{{if $composite}}, {{$singleCamel}}RangeName{{end}}).Get({{$singleCamel}}, selects, {{$hashVar}}{{if $composite}}, {{$rangeVar}}{{end}})
 
 	if err != nil {
 		return nil, err
