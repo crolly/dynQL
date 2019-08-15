@@ -42,11 +42,35 @@ func (d dynamoService) connect() *dynamo.DB {
 func (d dynamoService) getProjection(selects map[string]interface{}) []string {
 	proj := []string{}
 	for k := range selects {
+		// only first-level supported
 		proj = append(proj, "'"+k+"'")
+		{{/* // TODO: support nested selections
+		if b, ok := v.(bool); ok && b {
+			proj = append(proj, "'"+k+"'")
+		} else {
+			if v, ok := v.(map[string]interface{}); ok {
+				proj = append(proj, d.getNestedProjection(k, v)...)
+			}
+		} */}}
 	}
 
 	return proj
 }
+
+{{/* func (d dynamoService) getNestedProjection(parent string, selects map[string]interface{}) []string {
+	s := []string{}
+	for k, v := range selects {
+		if b, ok := v.(bool); ok && b {
+			s = append(s, fmt.Sprintf("'%s'.'%s'", parent, k))
+		} else {
+			if v, ok := v.(map[string]interface{}); ok {
+				s = append(s, d.getNestedProjection(fmt.Sprintf("'%s.'%s", parent, k), v)...)
+			}
+		}
+	}
+
+	return s
+} */}}
 
 func batch(in interface{}, batchSize int) ([][]interface{}, error) {
 	t := reflect.TypeOf(in)
@@ -100,7 +124,7 @@ func (d dynamoService) BatchWrite(in interface{}, batchSize int) error {
 	return nil
 }
 
-// Get retrieves the Model with the given Key Map from DynamoDB
+// Get retrieves the Model with the given Keys from DynamoDB
 func (d dynamoService) Get(out interface{}, selects map[string]interface{}, keys ...interface{}) error {
 	if len(keys) > 2 {
 		return fmt.Errorf("Too many Keys provided")
@@ -115,6 +139,62 @@ func (d dynamoService) Get(out interface{}, selects map[string]interface{}, keys
 	return q.One(out)
 }
 
+// BatchGet retrieves a Slice of Models with the given Keys from DynamoDB
+func (d dynamoService) BatchGet(out interface{}, batchSize int, keys ...interface{}) error {
+	// make sure is ptr of slice
+	v := reflect.ValueOf(out)
+	if v.Kind() != reflect.Ptr {
+		return fmt.Errorf("out needs to be a pointer of slice")
+	}
+
+	e := v.Elem()
+	if e.Kind() != reflect.Slice {
+		return fmt.Errorf("out is not a pointer of slice but of %s", e.Kind().String())
+	}
+
+	hashKey := keys[0]
+	if d.composite {
+		keys = keys[1:]
+	}
+
+	keyBatches, err := batch(keys, batchSize)
+	if err != nil {
+		return err
+	}
+
+	var b dynamo.Batch
+	if d.composite {
+		b = d.connect().Table(d.tableName).Batch(d.hashName, d.rangeName)
+	} else {
+		b = d.connect().Table(d.tableName).Batch(d.hashName)
+	}
+
+	res := reflect.MakeSlice(e.Type(), 0, 0)
+	for _, kb := range keyBatches {
+		keys := make([]dynamo.Keyed, len(kb))
+		for i, s := range kb {
+			if d.composite {
+				keys[i] = dynamo.Keys{hashKey, s}
+			} else {
+				keys[i] = dynamo.Keys{s}
+			}
+		}
+
+		tmp := reflect.MakeSlice(e.Type(), 0, 0)
+		ptr := reflect.New(tmp.Type())
+		ptr.Elem().Set(tmp)
+		err := b.Get(keys...).All(ptr.Interface())
+		if err != nil {
+			return err
+		}
+		res = reflect.AppendSlice(res, ptr.Elem())
+	}
+
+	v.Elem().Set(res)
+
+	return nil
+}
+
 // Scan retrieves a List of all Models
 func (d dynamoService) Scan(out interface{}, selects map[string]interface{}) error {
 	s := d.connect().Table(d.tableName).Scan()
@@ -125,7 +205,7 @@ func (d dynamoService) Scan(out interface{}, selects map[string]interface{}) err
 	return s.All(out)
 }
 
-// Delete deletes the Model with the given Key Map from DynamoDB
+// Delete deletes the Model with the given Keys from DynamoDB
 func (d dynamoService) Delete(keys ...interface{}) error {
 	if len(keys) > 2 {
 		return fmt.Errorf("Too many Keys provided")
@@ -135,4 +215,28 @@ func (d dynamoService) Delete(keys ...interface{}) error {
 		del.Range(d.rangeName, keys[1])
 	}
 	return del.Run()
+}
+
+// Query retrieves a List of all Models satisfying the hashKey
+func (d dynamoService) Query(out interface{}, selects map[string]interface{}, keys ...interface{}) error {
+	return d.connect().Table(d.tableName).Get(d.hashName, keys[0]).All(out)
+}
+
+// QueryWithRange retrieves a List of all Models satisfying the hashKey and rangeKey condition
+func (d dynamoService) QueryWithRange(out interface{}, selects map[string]interface{}, op DynamoOperator, keys ...interface{}) error {
+	return d.queryRange(out, selects, op, keys).All(out)
+}
+
+// QueryWithIndex calls QueryWithRange with an additionally provided index if the rangeKey condition requires a LSI or GSI
+func (d dynamoService) QueryWithIndex(out interface{}, selects map[string]interface{}, index string, op DynamoOperator, keys ...interface{}) error {
+	return d.queryRange(out, selects, op, keys).Index(index).All(out)
+}
+
+func (d dynamoService) queryRange(out interface{}, selects map[string]interface{}, op DynamoOperator, keys ...interface{}) *dynamo.Query {
+	q := d.connect().Table(d.tableName).Get(d.hashName, keys[0]).Range(d.rangeName, dynamo.Operator(op), keys[0])
+	if p := d.getProjection(selects); len(p) > 0 {
+		q.Project(p...)
+	}
+
+	return q
 }
