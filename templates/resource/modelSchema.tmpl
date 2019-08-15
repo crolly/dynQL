@@ -46,12 +46,12 @@ func {{$singleCamel}}Fields() {
 			return models.Get{{$singlePascal}}(params)
 		},
 	}
-    // Get list of all {{$pluralHuman}}
+    // List all {{$pluralHuman}}
 	queryFields["{{$pluralPascal}}"] = &graphql.Field{
 		Type:        graphql.NewList({{$singleCamel}}Type),
-		Description: "Get list of all {{$pluralHuman}}",
+		Description: "List all {{$pluralHuman}}",
 		Resolve: func(params graphql.ResolveParams) (interface{}, error) {
-			return models.Get{{$pluralPascal}}(params)
+			return models.List{{$pluralPascal}}(params)
 		},
 	}
 

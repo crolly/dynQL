@@ -1,0 +1,137 @@
+package models
+
+import (
+	"os"
+	"testing"
+
+	"github.com/graphql-go/graphql"
+	"github.com/stretchr/testify/assert"
+)
+
+func init() {
+	os.Setenv("LOCAL", "true")
+	os.Setenv("ENDPOINT", "http://localhost:8000")
+	os.Setenv("REGION", "{{.Config.Region}}")
+}
+
+type TestStruct struct {
+	Name       string
+	Count      int
+	Price      float32
+	Valid      bool
+	Items      []string
+	Nested     NestedStruct
+	NestedList []NestedStruct
+}
+
+type NestedStruct struct {
+	Name string
+}
+
+func TestGetType(test *testing.T) {
+	t := TestStruct{}
+
+	actual := graphQLType(t)
+
+	nested := graphql.NewObject(graphql.ObjectConfig{
+		Name:        "NestedStruct",
+		Description: "Representation of the NestedStruct Object",
+		Fields: graphql.Fields{
+			"name": &graphql.Field{
+				Description: "The Name Field of the NestedStruct",
+				Type:        graphql.String,
+			},
+		},
+	})
+
+	expected := graphql.NewObject(graphql.ObjectConfig{
+		Name:        "TestStruct",
+		Description: "Representation of the TestStruct Object",
+		Fields: graphql.Fields{
+			"name": &graphql.Field{
+				Description: "The Name Field of the TestStruct",
+				Type:        graphql.String,
+			},
+			"count": &graphql.Field{
+				Description: "The Count Field of the TestStruct",
+				Type:        graphql.Int,
+			},
+			"price": &graphql.Field{
+				Description: "The Price Field of the TestStruct",
+				Type:        graphql.Float,
+			},
+			"valid": &graphql.Field{
+				Description: "The Valid Field of the TestStruct",
+				Type:        graphql.Boolean,
+			},
+			"items": &graphql.Field{
+				Description: "The Items Field of the TestStruct",
+				Type:        graphql.NewList(graphql.String),
+			},
+			"nested": &graphql.Field{
+				Description: "The Nested Field of the TestStruct",
+				Type:        nested,
+			},
+			"nested_list": &graphql.Field{
+				Description: "The Nested list Field of the TestStruct",
+				Type:        graphql.NewList(nested),
+			},
+		},
+	})
+
+	assert.Equal(test, expected, actual)
+}
+
+func TestGetInputType(test *testing.T) {
+	t := TestStruct{}
+
+	actual := graphQLInputType(t)
+
+	nested := graphql.NewInputObject(graphql.InputObjectConfig{
+		Name:        "NestedStructInput",
+		Description: "Representation of the NestedStruct Object",
+		Fields: graphql.InputObjectConfigFieldMap{
+			"name": &graphql.InputObjectFieldConfig{
+				Description: "The Name Input Field of the NestedStructInput",
+				Type:        graphql.String,
+			},
+		},
+	})
+
+	expected := graphql.NewInputObject(graphql.InputObjectConfig{
+		Name:        "TestStructInput",
+		Description: "Representation of the TestStruct Object",
+		Fields: graphql.InputObjectConfigFieldMap{
+			"name": &graphql.InputObjectFieldConfig{
+				Description: "The Name Input Field of the TestStructInput",
+				Type:        graphql.String,
+			},
+			"count": &graphql.InputObjectFieldConfig{
+				Description: "The Count Input Field of the TestStructInput",
+				Type:        graphql.Int,
+			},
+			"price": &graphql.InputObjectFieldConfig{
+				Description: "The Price Input Field of the TestStructInput",
+				Type:        graphql.Float,
+			},
+			"valid": &graphql.InputObjectFieldConfig{
+				Description: "The Valid Input Field of the TestStructInput",
+				Type:        graphql.Boolean,
+			},
+			"items": &graphql.InputObjectFieldConfig{
+				Description: "The Items Input Field of the TestStructInput",
+				Type:        graphql.NewList(graphql.String),
+			},
+			"nested": &graphql.InputObjectFieldConfig{
+				Description: "The Nested Input Field of the TestStructInput",
+				Type:        nested,
+			},
+			"nested_list": &graphql.InputObjectFieldConfig{
+				Description: "The Nested list Input Field of the TestStructInput",
+				Type:        graphql.NewList(nested),
+			},
+		},
+	})
+
+	assert.Equal(test, expected, actual)
+}

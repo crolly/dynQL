@@ -80,8 +80,8 @@ func Get{{$singlePascal}}(params graphql.ResolveParams) (*{{$singlePascal}}, err
 	return {{$singleCamel}}, err
 }
 
-// Get{{$pluralPascal}} is the List method of the CRUDL to retrieve the List of all {{$pluralPascal}}
-func Get{{$pluralPascal}}(params graphql.ResolveParams) ([]*{{$singlePascal}}, error) {
+// List{{$pluralPascal}} is the List method of the CRUDL to retrieve the List of all {{$pluralPascal}}
+func List{{$pluralPascal}}(params graphql.ResolveParams) ([]*{{$singlePascal}}, error) {
 	{{$pluralCamel}} := []*{{$singlePascal}}{}
 	selects, err := getSelectedFields(params)
 	if err != nil {

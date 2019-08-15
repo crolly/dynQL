@@ -105,7 +105,9 @@ func renderResourceTemplates(config *models.DQLConfig, model *models.Model, sche
 	templates := map[string][]string{
 		"models": {
 			"model",
+			"model_test",
 			"resource",
+			"resource_test",
 		},
 		"schema": {
 			"schema",

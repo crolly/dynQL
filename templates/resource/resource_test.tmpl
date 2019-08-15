@@ -1,0 +1,155 @@
+{{- $single := .Model.Ident.Singularize -}}
+{{- $singleCamel := $single.Camelize.String -}}
+{{- $singlePascal := $single.Pascalize.String -}}
+{{- $singleHuman := $single.Humanize.String -}}
+{{- $plural := .Model.Ident.Pluralize -}}
+{{- $pluralCamel := $plural.Camelize.String -}}
+{{- $pluralPascal := $plural.Pascalize.String -}}
+{{- $pluralHuman := $plural.Humanize.String -}}
+{{- $hash := Underscore (index .Model.KeySchema "HASH") -}}
+{{- $hashAttr := Pascalize (index .Model.KeySchema "HASH") -}}
+{{- $hashVar := Camelize (index .Model.KeySchema "HASH") -}}
+{{- $range := Underscore (index .Model.KeySchema "RANGE") -}}
+{{- $rangeAttr := Pascalize (index .Model.KeySchema "RANGE") -}}
+{{- $rangeVar := Camelize (index .Model.KeySchema "RANGE") -}}
+{{- $composite := .Model.CompositeKey -}}
+package models_test
+
+import (
+	"os"
+	"testing"
+
+	"github.com/crolly/structs"
+	"github.com/gofrs/uuid"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/graphql-go/graphql"
+	"github.com/graphql-go/graphql/language/ast"
+
+	"{{.Config.ImportPath}}/models"
+	"{{.Config.ImportPath}}/services"
+)
+
+func init() {
+	os.Setenv("{{$single.ToUpper}}_TABLE_NAME", "{{.Config.ProjectName}}-{{$pluralCamel}}-test")
+}
+
+func new{{$singlePascal}}Model() *models.{{$singlePascal}} {
+	// you can add fake data here
+	return &models.{{$singlePascal}}{
+		{{$hashAttr}}: uuid.Must(uuid.NewV4()).String(),
+		{{- if $composite }}
+		{{$rangeAttr}}: uuid.Must(uuid.NewV4()).String(), 
+		{{- end }}
+	}
+}
+
+func new{{$singlePascal}}ModelSlice() []*models.{{$singlePascal}} {
+	s := []*models.{{$singlePascal}}{}
+	for i := 0; i < 10; i++ {
+		s = append(s, new{{$singlePascal}}Model())
+	}
+
+	return s
+}
+
+func cleanup{{$singlePascal}}Model({{$first}} *models.{{$singlePascal}}) error {
+	params := graphql.ResolveParams{
+		Args: map[string]interface{}{
+			"{{ $hash }}": {{$first}}.{{$hashAttr}},
+			{{- if $composite}}
+			"{{ $range }}": {{$first}}.{{$rangeAttr}},
+			{{- end}}	
+		},
+	}
+	return models.Delete{{$singlePascal}}(params)
+}
+
+func cleanup{{$singlePascal}}Slice(s []*models.{{$singlePascal}}) []error {
+	errs := []error{}
+	for _, {{$first}} := range s {
+		err := cleanup{{$singlePascal}}Model({{$first}})
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	return errs
+}
+
+func getParams() graphql.ResolveParams {
+	return graphql.ResolveParams{
+		Info: graphql.ResolveInfo{
+			FieldASTs: []*ast.Field{
+				{
+					SelectionSet: &ast.SelectionSet{
+						Selections: []ast.Selection{
+							&ast.Field{Name: &ast.Name{Value: "{{$hash}}"}},
+                            {{- if $composite}}
+							&ast.Field{Name: &ast.Name{Value: "{{$range}}"}},
+                            {{- end}}
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func TestPutAndDelete{{$singlePascal}}(test *testing.T) {
+	// Test Put
+	expected := new{{$singlePascal}}Model()
+	params := getParams()
+	params.Args = map[string]interface{}{
+		"{{$singleCamel}}": structs.Map(expected),
+	}
+
+	actual, err := models.Put{{$singlePascal}}(params)
+	assert.NoError(test, err)
+	assert.Equal(test, expected, actual)
+
+	// Test Delete
+	params.Args = map[string]interface{}{
+		"{{$hash}}":  expected.{{$hashAttr}},
+        {{- if $composite}}
+		"{{$range}}": expected.{{$rangeAttr}},
+        {{- end}}
+	}
+	err = models.Delete{{$singlePascal}}(params)
+	assert.NoError(test, err)
+}
+
+func TestList{{$pluralPascal}}(test *testing.T) {
+	expected := []*models.{{$singlePascal}}{}
+	services.{{$singlePascal}}Service("{{$hash}}"{{if $composite}}, "{{$range}}"{{end}}).Scan(&expected, map[string]interface{}{
+		"{{$hash}}":  true,
+        {{- if $composite}}
+		"{{$range}}": true,
+        {{- end}}
+	})
+	params := getParams()
+	actual, err := models.List{{$pluralPascal}}(params)
+	assert.NoError(test, err)
+	assert.ElementsMatch(test, expected, actual)
+
+	cleanup{{$singlePascal}}Slice(actual)
+}
+
+func TestGet{{$singlePascal}}(test *testing.T) {
+	expected := new{{$singlePascal}}Model()
+	services.{{$singlePascal}}Service("{{$hash}}"{{if $composite}}, "{{$range}}"{{end}}).Put(expected)
+
+	params := getParams()
+	params.Args = map[string]interface{}{
+		"{{$hash}}":  expected.{{$hashVar}},
+        {{- if $composite}}
+		"{{$range}}": expected.{{$rangeVar}},
+        {{- end}}
+
+	actual, err := models.Get{{$singlePascal}}(params)
+	assert.NoError(test, err)
+	assert.Equal(test, expected, actual)
+
+	cleanup{{$singlePascal}}Model(actual)
+}
