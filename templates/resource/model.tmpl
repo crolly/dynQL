@@ -29,7 +29,7 @@ func graphQLInputType(in interface{}) *graphql.InputObject {
 func getObjectConfig(in interface{}, oct objectConfigType) interface{} {
 	t := getElemType(in)
 	tName := t.Name()
-	desc := fmt.Sprintf("Representation of the %s object", tName)
+	desc := fmt.Sprintf("Representation of the %s Object", tName)
 	// fields := getFieldDef(in, oct)
 	def := getFieldDef(in, oct)
 
@@ -39,7 +39,7 @@ func getObjectConfig(in interface{}, oct objectConfigType) interface{} {
 		for fn, ft := range def {
 			fields[fn] = &graphql.InputObjectFieldConfig{
 				Type:        ft,
-				Description: fmt.Sprintf("The %s field of the %s", flect.Humanize(fn), tName),
+				Description: fmt.Sprintf("The %s Input Field of the %sInput", flect.Humanize(fn), tName),
 			}
 		}
 		return graphql.NewInputObject(graphql.InputObjectConfig{
@@ -52,7 +52,7 @@ func getObjectConfig(in interface{}, oct objectConfigType) interface{} {
 		for fn, ft := range def {
 			fields[fn] = &graphql.Field{
 				Type:        ft,
-				Description: fmt.Sprintf("The %s field of the %s", flect.Humanize(fn), tName),
+				Description: fmt.Sprintf("The %s Field of the %s", flect.Humanize(fn), tName),
 			}
 		}
 		return graphql.NewObject(graphql.ObjectConfig{
