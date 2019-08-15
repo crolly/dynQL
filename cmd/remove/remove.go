@@ -41,14 +41,13 @@ var RemoveCmd = &cobra.Command{
 
 		// delete from configuration
 		c.Remove(name)
-
-		// delete files
-		err = c.RemoveFiles(name)
+		err = c.Write()
 		if err != nil {
 			return err
 		}
 
-		return c.Write()
+		// delete files
+		return c.RemoveFiles(name)
 	},
 	PostRun: func(cmd *cobra.Command, args []string) {
 		printRemoveMsg()

@@ -44,12 +44,7 @@ var (
 
 			// delete from configuration
 			c.RemoveResource(name, deleteTable)
-
-			// delete files
-			err = c.RemoveResourceFiles(schema, name)
-			if err != nil {
-				return err
-			}
+			c.Write()
 
 			if len(schema) > 0 {
 				err = reRenderSchemaTemplate(c, schema)
@@ -58,7 +53,8 @@ var (
 				}
 			}
 
-			return c.Write()
+			// delete files
+			return c.RemoveResourceFiles(schema, name)
 		},
 		PostRun: func(cmd *cobra.Command, args []string) {
 			printRemoveMsg()
