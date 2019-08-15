@@ -21,6 +21,9 @@
 package remove
 
 import (
+	"path/filepath"
+
+	"github.com/crolly/dynQL/cmd/helpers"
 	"github.com/crolly/dynQL/cmd/models"
 	"github.com/spf13/cobra"
 )
@@ -47,6 +50,12 @@ var (
 			if err != nil {
 				return err
 			}
+
+			err = reRenderSchemaTemplate(c, schema)
+			if err != nil {
+				return err
+			}
+
 			return c.Write()
 		},
 		PostRun: func(cmd *cobra.Command, args []string) {
@@ -64,4 +73,12 @@ func init() {
 	resourceCmd.Flags().BoolVarP(&deleteTable, "deleteTable", "d", false, "Delete all Tables from this Resource in the local DynamoDB")
 
 	resourceCmd.MarkFlagRequired("schema")
+}
+
+func reRenderSchemaTemplate(config *models.DQLConfig, schema string) error {
+	f := filepath.Join(config.ProjectPath, "handler", schema, "schema")
+	data := map[string]interface{}{
+		"Config": config,
+	}
+	return helpers.RenderFile(helpers.RemoveBox, "schema.go", "schema.tmpl", f, data)
 }

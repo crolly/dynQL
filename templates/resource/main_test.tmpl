@@ -24,7 +24,7 @@ func init() {
 	os.Setenv("ENDPOINT", "http://localhost:8000")
 	os.Setenv("REGION", "{{.Config.Region}}")
 	{{- range $r := .Config.Resources}}
-	os.Setenv("{{$r.Ident.Singularize.ToUpper}}_TABLE_NAME", "{{.Config.ProjectName}}-{{$r.Ident.Pluralize.Camelize}}-test")
+	os.Setenv("{{$r.Ident.Singularize.ToUpper}}_TABLE_NAME", "{{$.Config.ProjectName}}-{{$r.Ident.Pluralize.Camelize}}-test")
 	{{- end}}
 }
 

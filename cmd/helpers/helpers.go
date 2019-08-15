@@ -26,6 +26,8 @@ var (
 	FunctionBox = packr.New("function", "../../templates/function")
 	// MakeBox is the packr box containing the Makefile template
 	MakeBox = packr.New("make", "../../templates/make")
+	// RemoveBox is the packr box containing the schema template to be rerender when a resource is removed
+	RemoveBox = packr.New("make", "../../templates/remove")
 )
 
 // GetWorkingDir get the directory the current command is run out of

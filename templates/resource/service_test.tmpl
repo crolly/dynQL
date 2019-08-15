@@ -81,7 +81,7 @@ func TestPutAndGet{{$singlePascal}}(test *testing.T) {
 	assert.NoError(test, err)
 
 	actual := &models.{{$singlePascal}}{}
-	err = services.{{$singlePascal}}Service("{{$hash}}"{{if $composite}}, "{{$range}}"{{end}}).Get(expected.{{$hashAttr}}{{if $composite}}, expected.{{$rangeAttr}}{{end}}, actual, {{$singleCamel}}TestSelects)
+	err = services.{{$singlePascal}}Service("{{$hash}}"{{if $composite}}, "{{$range}}"{{end}}).Get(actual, {{$singleCamel}}TestSelects, {{$first}}.{{$hashAttr}}{{if $composite}}, {{$first}}.{{$rangeAttr}}{{end}})
 	assert.NoError(test, err)
 
 	assert.Equal(test, expected, actual)	
@@ -114,7 +114,7 @@ func TestDeleteAndGetNonExistent{{$singlePascal}}(test *testing.T) {
 	assert.NoError(test, err)
 
 	actual := &models.{{$singlePascal}}{}
-	err = services.{{$singlePascal}}Service("{{$hash}}"{{if $composite}}, "{{$range}}"{{end}}).Get({{$first}}.{{$hashAttr}}{{if $composite}}{{$first}}.{{$rangeAttr}}{{end}}, actual, {{$singleCamel}}TestSelects)
+	err = services.{{$singlePascal}}Service("{{$hash}}"{{if $composite}}, "{{$range}}"{{end}}).Get(actual, {{$singleCamel}}TestSelects, {{$first}}.{{$hashAttr}}{{if $composite}}, {{$first}}.{{$rangeAttr}}{{end}})
 	assert.Error(test, err, "dynamo: no item found")
 
 }

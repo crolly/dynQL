@@ -25,8 +25,8 @@ import (
 
 {{.Model}}
 
-var {{$singleCamel}}HashKey = "{{$hash}}"
-{{if $composite}}var {{$singleCamel}}RangeKey = "{{$range}}"{{end}}
+var {{$singleCamel}}HashName = "{{$hash}}"
+{{if $composite}}var {{$singleCamel}}RangeName = "{{$range}}"{{end}}
 
 // Get{{$singlePascal}}Type returns the GraphQL Object for the {{$singleHuman}} Model
 func Get{{$singlePascal}}Type() *graphql.Object {
@@ -54,12 +54,12 @@ func Put{{$singlePascal}}(params graphql.ResolveParams) (*{{$singlePascal}}, err
 	i := params.Args["{{$singleCamel}}"]
 	{{$singleCamel}} := &{{$singlePascal}}{}
 
-	err := decode(i, {{$singleCamel}})
+	err := Decode(i, {{$singleCamel}})
 	if err != nil {
 		return nil, err
 	}
 
-	return {{$singleCamel}}, services.{{$singlePascal}}Service({{$singleCamel}}HashKey{{if $composite}}, {{$singleCamel}}RangeKey{{end}}).Put({{$singleCamel}})
+	return {{$singleCamel}}, services.{{$singlePascal}}Service({{$singleCamel}}HashName{{if $composite}}, {{$singleCamel}}RangeName{{end}}).Put({{$singleCamel}})
 }
 
 // Get{{$singlePascal}} is the Read method of the CRUDL to retrive a single {{$singlePascal}} with given key(s)
@@ -73,7 +73,7 @@ func Get{{$singlePascal}}(params graphql.ResolveParams) (*{{$singlePascal}}, err
 	if err != nil {
 		return nil, err
 	}
-	err = services.{{$singlePascal}}Service({{$singleCamel}}HashKey{{if $composite}}, {{$singleCamel}}RangeKey{{end}}).Get({{$hashVar}}{{if $composite}}, {{$rangeVar}}{{end}}, {{$singleCamel}}, selects)
+	err = services.{{$singlePascal}}Service({{$singleCamel}}HashName{{if $composite}}, {{$singleCamel}}RangeName{{end}}).Get({{$hashVar}}{{if $composite}}, {{$rangeVar}}{{end}}, {{$singleCamel}}, selects)
 
 	if err != nil {
 		return nil, err
@@ -89,7 +89,7 @@ func Get{{$pluralPascal}}(params graphql.ResolveParams) ([]*{{$singlePascal}}, e
 	if err != nil {
 		return nil, err
 	}
-	err = services.{{$singlePascal}}Service({{$singleCamel}}HashKey{{if $composite}}, {{$singleCamel}}RangeKey{{end}}).Scan(&{{$pluralCamel}}, selects)
+	err = services.{{$singlePascal}}Service({{$singleCamel}}HashName{{if $composite}}, {{$singleCamel}}RangeName{{end}}).Scan(&{{$pluralCamel}}, selects)
 	if err != nil {
 		return nil, err
 	}
@@ -102,5 +102,5 @@ func Delete{{$singlePascal}}(params graphql.ResolveParams) error {
 	{{if $composite -}}
 	{{$rangeVar}}, _ := params.Args["{{$range}}"].(string)
 	{{- end}}
-	return services.{{$singlePascal}}Service({{$singleCamel}}HashKey{{if $composite}}, {{$singleCamel}}RangeKey{{end}}).Delete({{$hashVar}}{{if $composite}}, {{$rangeVar}}{{end}})
+	return services.{{$singlePascal}}Service({{$singleCamel}}HashName{{if $composite}}, {{$singleCamel}}RangeName{{end}}).Delete({{$hashVar}}{{if $composite}}, {{$rangeVar}}{{end}})
 }

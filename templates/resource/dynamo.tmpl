@@ -1,9 +1,9 @@
 package services
 
 import (
-	"errors"
 	"fmt"
 	"os"
+	"reflect"
 	"strconv"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -39,63 +39,6 @@ func (d dynamoService) connect() *dynamo.DB {
 	return dynamo.New(sess, conf)
 }
 
-func (d dynamoService) runWithHash(hashValue interface{}, op operation, i interface{}, selects map[string]interface{}) error {
-	switch op {
-	case dynamoServiceGet:
-		q := d.connect().Table(d.tableName).Get(d.hashName, hashValue)
-		if p := d.getProjection(selects); len(p) > 0 {
-			q.Project(p...)
-		}
-		return q.One(i)
-	case dynamoServiceDelete:
-		return d.connect().Table(d.tableName).Delete(d.hashName, hashValue).Run()
-	}
-
-	return nil
-}
-
-func (d dynamoService) runWithRange(hashValue, rangeValue interface{}, op operation, i interface{}, selects map[string]interface{}) error {
-	switch op {
-	case dynamoServiceGet:
-		q := d.connect().Table(d.tableName).Get(d.hashName, hashValue).Range(d.rangeName, dynamo.Equal, rangeValue)
-		if p := d.getProjection(selects); len(p) > 0 {
-			q.Project(p...)
-		}
-		return q.One(i)
-	case dynamoServiceDelete:
-		return d.connect().Table(d.tableName).Delete(d.hashName, hashValue).Range(d.rangeName, rangeValue).Run()
-	}
-
-	return nil
-}
-
-func (d dynamoService) getHashKey(keys map[string]interface{}) (interface{}, error) {
-	l := len(keys)
-	if l != 1 {
-		return "", fmt.Errorf("Invalid amount of keys. Expected: 1 - Actual: %d", l)
-	}
-
-	hashKey, ok := keys[d.hashName]
-	if !ok {
-		return "", errors.New("Wrong Name provided for the hashKey in Keys Map")
-	}
-	return hashKey, nil
-}
-
-func (d dynamoService) getCompositeKey(keys map[string]interface{}) (interface{}, interface{}, error) {
-	l := len(keys)
-	if l != 2 {
-		return "", "", fmt.Errorf("Invalid amount of keys. Expected: 2 - Actual: %d", l)
-	}
-
-	hashKey, hOk := keys[d.hashName]
-	rangeKey, rOk := keys[d.rangeName]
-	if !hOk || !rOk {
-		return "", "", errors.New("Wrong Name provided for the hashKey in Keys Map")
-	}
-	return hashKey, rangeKey, nil
-}
-
 func (d dynamoService) getProjection(selects map[string]interface{}) []string {
 	proj := []string{}
 	for k := range selects {
@@ -105,26 +48,71 @@ func (d dynamoService) getProjection(selects map[string]interface{}) []string {
 	return proj
 }
 
+func batch(in interface{}, batchSize int) ([][]interface{}, error) {
+	t := reflect.TypeOf(in)
+	switch t.Kind() {
+	case reflect.Slice:
+		s := reflect.ValueOf(in)
+		// duplicate initial slice
+		sd := make([]interface{}, s.Len())
+		for i := 0; i < s.Len(); i++ {
+			sd[i] = s.Index(i).Interface()
+		}
+
+		out := [][]interface{}{}
+		for batchSize < len(sd) {
+			sd, out = sd[batchSize:], append(out, sd[0:batchSize:batchSize])
+		}
+		out = append(out, sd)
+
+		return out, nil
+	default:
+		return nil, fmt.Errorf("Input must be a Slice")
+	}
+
+}
+
 // Put writes the given Model to DynamoDB
 func (d dynamoService) Put(in interface{}) error {
 	return d.connect().Table(d.tableName).Put(in).Run()
 }
 
-// Get retrieves the Model with the given Key Map from DynamoDB
-func (d dynamoService) Get(keys map[string]interface{}, out interface{}, selects map[string]interface{}) error {
+// BatchWrite writes a Slice of Models to DynamoDB
+func (d dynamoService) BatchWrite(in interface{}, batchSize int) error {
+	keys := []string{d.hashName}
 	if d.composite {
-		hashKey, rangeKey, err := d.getCompositeKey(keys)
-		if err != nil {
-			return err
-		}
-		return d.runWithRange(hashKey, rangeKey, dynamoServiceGet, out, selects)
+		keys = append(keys, d.rangeName)
 	}
 
-	hashKey, err := d.getHashKey(keys)
+	bs, err := batch(in, batchSize)
 	if err != nil {
 		return err
 	}
-	return d.runWithHash(hashKey, dynamoServiceGet, out, selects)
+
+	w := d.connect().Table(d.tableName).Batch(keys...).Write()
+	for _, b := range bs {
+		_, err = w.Put(b...).Run()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Get retrieves the Model with the given Key Map from DynamoDB
+func (d dynamoService) Get(out interface{}, selects map[string]interface{}, keys ...interface{}) error {
+	if len(keys) > 2 {
+		return fmt.Errorf("Too many Keys provided")
+	}
+	q := d.connect().Table(d.tableName).Get(d.hashName, keys[0])
+	if d.composite {
+		q.Range(d.rangeName, dynamo.Equal, keys[1])
+	}
+	if p := d.getProjection(selects); len(p) > 0 {
+		q.Project(p...)
+	}
+	return q.One(out)
 }
 
 // Scan retrieves a List of all Models
@@ -138,18 +126,13 @@ func (d dynamoService) Scan(out interface{}, selects map[string]interface{}) err
 }
 
 // Delete deletes the Model with the given Key Map from DynamoDB
-func (d dynamoService) Delete(keys map[string]interface{}) error {
+func (d dynamoService) Delete(keys ...interface{}) error {
+	if len(keys) > 2 {
+		return fmt.Errorf("Too many Keys provided")
+	}
+	del := d.connect().Table(d.tableName).Delete(d.hashName, keys[0])
 	if d.composite {
-		hashKey, rangeKey, err := d.getCompositeKey(keys)
-		if err != nil {
-			return err
-		}
-		return d.runWithRange(hashKey, rangeKey, dynamoServiceDelete, nil, nil)
+		del.Range(d.rangeName, keys[1])
 	}
-
-	hashKey, err := d.getHashKey(keys)
-	if err != nil {
-		return err
-	}
-	return d.runWithHash(hashKey, dynamoServiceDelete, nil, nil)
+	return del.Run()
 }
