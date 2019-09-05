@@ -10,6 +10,14 @@ import (
 	"github.com/graphql-go/graphql"
 )
 
+var headers = map[string]string{
+	"Content-Type":                     "application/json",
+	"Access-Control-Allow-Origin":      "*",
+	"Access-Control-Expose-Headers":    "Access-Control-Allow-Origin",
+	"Access-Control-Allow-Credentials": "true",
+	"Access-Control-Allow-Methods":     "GET,PUT,POST,DELETE,PATCH,OPTIONS",
+}
+
 type requestBody struct {
 	Query          string                 `json:"query"`
 	VariableValues map[string]interface{} `json:"variables"`
@@ -37,16 +45,16 @@ func Handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	requestBody := requestBody{}
 	err := json.Unmarshal([]byte(request.Body), &requestBody)
 	if err != nil {
-		return events.APIGatewayProxyResponse{Body: err.Error(), StatusCode: 500}, err
+		return events.APIGatewayProxyResponse{Headers:headers, Body: err.Error(), StatusCode: 400}, err
 	}
 
 	graphQLResult, err := executeQuery(requestBody, schema.Schema)
 	if err != nil {
-		return events.APIGatewayProxyResponse{Body: err.Error(), StatusCode: 400}, err
+		return events.APIGatewayProxyResponse{Headers: headers, Body: err.Error(), StatusCode: 400}, err
 	}
 
 	responseJSON, _ := json.Marshal(graphQLResult)
-	return events.APIGatewayProxyResponse{Body: string(responseJSON[:]), StatusCode: 200}, nil
+	return events.APIGatewayProxyResponse{Headers: headers, Body: string(responseJSON[:]), StatusCode: 200}, nil
 }
 
 func main() {
