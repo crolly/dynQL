@@ -26,7 +26,7 @@ var (
 func {{$singleCamel}}Fields() {
 	// customizations to the {{$singleCamel}} type
 
-    // Get single {{$singleHuman}} 
+	// Get single {{$singleHuman}} 
 	queryFields["{{$singlePascal}}"] = &graphql.Field{
 		Type:        {{$singleCamel}}Type,
 		Description: "Get single {{$singleHuman}} with given ID",
