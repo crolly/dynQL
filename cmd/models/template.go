@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/crolly/dynQL/cmd/helpers"
+
 	"gopkg.in/yaml.v2"
 
 	"github.com/gobuffalo/flect"
@@ -60,7 +62,7 @@ type FnEnvironment struct {
 func NewTemplate(c *DQLConfig) (*TemplateConfig, error) {
 	// instantiate
 	t := &TemplateConfig{
-		ProjectPath: c.ProjectPath,
+		ProjectPath: helpers.GetProjectPath(c.ProjectPath),
 		Transform:   "AWS::Serverless-2016-10-31",
 		Globals: GlobalConfig{
 			Function: SAMFnProp{

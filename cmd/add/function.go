@@ -87,7 +87,7 @@ func renderFunctionTemplates(config *models.DQLConfig, fName string) error {
 	}
 
 	// iterate over schema templates and execute
-	folder := filepath.Join(config.ProjectPath, "handler", fName)
+	folder := filepath.Join(helpers.GetProjectPath(config.ProjectPath), "handler", fName)
 	for _, t := range templates {
 		err := os.MkdirAll(folder, 0755)
 		if err != nil {

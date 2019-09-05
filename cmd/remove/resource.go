@@ -72,7 +72,7 @@ func init() {
 }
 
 func reRenderSchemaTemplate(config *models.DQLConfig, schema string) error {
-	f := filepath.Join(config.ProjectPath, "handler", schema, "schema")
+	f := filepath.Join(helpers.GetProjectPath(config.ProjectPath), "handler", schema, "schema")
 	data := map[string]interface{}{
 		"Config": config,
 	}

@@ -40,6 +40,17 @@ func GetWorkingDir() (string, error) {
 	return wd, err
 }
 
+// GetProjectPath gets the OS path of the project
+func GetProjectPath(path string) string {
+	goPath := os.Getenv("GOPATH")
+	if len(goPath) == 0 {
+		log.Fatal("$GOPATH is not set")
+	}
+	srcPath := filepath.Join(goPath, "src")
+
+	return filepath.Join(srcPath, path)
+}
+
 // AwsType returns the AWS datatype for a given golang type
 func AwsType(s string) string {
 	switch strings.ToLower(s) {

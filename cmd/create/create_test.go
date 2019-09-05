@@ -33,8 +33,7 @@ func TestCreateCommand(t *testing.T) {
 	si := strings.Index(folder, "github.com")
 	expected := models.DQLConfig{
 		ProjectName: "test",
-		ProjectPath: folder,
-		ImportPath:  folder[si:],
+		ProjectPath: folder[si:],
 		Region:      "eu-central-1",
 	}
 	assert.Equal(t, expected, actual)

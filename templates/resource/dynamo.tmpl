@@ -18,15 +18,8 @@ type dynamoService struct {
 	composite bool
 }
 
-type operation int
-
-const (
-	dynamoServicePut = iota
-	dynamoServiceGet
-	dynamoServiceDelete
-	dynamoServiceScan
-	dynamoServiceQuery
-)
+// DynamoOperator describes the Comparison for Dynamo Range Keys
+type DynamoOperator string
 
 func (d dynamoService) connect() *dynamo.DB {
 	sess := session.New()

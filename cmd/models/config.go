@@ -25,7 +25,6 @@ import (
 type DQLConfig struct {
 	ProjectName string
 	ProjectPath string
-	ImportPath  string
 	Region      string
 	Schemas     map[string]*Schema
 	Resources   map[string]*Resource
@@ -73,7 +72,7 @@ func ReadDQLConfig() (*DQLConfig, error) {
 
 // Write write the DQLConfig to dql.config.json in the project path
 func (c DQLConfig) Write() error {
-	f := filepath.Join(c.ProjectPath, "dql.conf.json")
+	f := filepath.Join(helpers.GetProjectPath(c.ProjectPath), "dql.conf.json")
 
 	json, err := json.MarshalIndent(c, "", "  ")
 	if err != nil {
@@ -87,7 +86,7 @@ func (c DQLConfig) newServerlessConfig() ServerlessConfig {
 	s := newDefaultServerlessConfig()
 	s.Service = Service{Name: c.ProjectName}
 	s.Provider.Region = c.Region
-	s.ProjectPath = c.ProjectPath
+	s.ProjectPath = helpers.GetProjectPath(c.ProjectPath)
 
 	return s
 }
@@ -96,7 +95,7 @@ func (c DQLConfig) newServerlessConfig() ServerlessConfig {
 // If a serverless.yml file does not exist, a new default ServerlessConfig is returned
 func (c DQLConfig) ReadServerlessConfig() (*ServerlessConfig, error) {
 	var sc ServerlessConfig
-	data, err := helpers.ReadDataFromFile(filepath.Join(c.ProjectPath, "serverless.yml"))
+	data, err := helpers.ReadDataFromFile(filepath.Join(helpers.GetProjectPath(c.ProjectPath), "serverless.yml"))
 	if err == nil {
 		if err := yaml.Unmarshal(data, &sc); err != nil {
 			return nil, err
@@ -355,7 +354,7 @@ func (c DQLConfig) deleteTable(svc *dynamodb.DynamoDB, tableName string) error {
 
 func (c DQLConfig) renderMakefile(t *template.Template) error {
 	// open file and execute template
-	f, err := os.Create(filepath.Join(c.ProjectPath, "Makefile"))
+	f, err := os.Create(filepath.Join(helpers.GetProjectPath(c.ProjectPath), "Makefile"))
 	if err != nil {
 		return err
 	}
@@ -386,7 +385,7 @@ func (c DQLConfig) make(path, target string, test bool) error {
 	}
 
 	// clear the debug binaries
-	os.RemoveAll(filepath.Join(c.ProjectPath, "debug"))
+	os.RemoveAll(filepath.Join(helpers.GetProjectPath(c.ProjectPath), "debug"))
 	// render for each resource/ function group
 	c.renderMakefile(t)
 	// run test if flag indicates so
@@ -412,7 +411,7 @@ func (c DQLConfig) MakeBuild(test bool) {
 // RemoveFiles ...
 func (c DQLConfig) RemoveFiles(name string) error {
 	// function folder
-	folder := filepath.Join(c.ProjectPath, "handler", name)
+	folder := filepath.Join(helpers.GetProjectPath(c.ProjectPath), "handler", name)
 
 	return os.RemoveAll(folder)
 }
@@ -421,15 +420,16 @@ func (c DQLConfig) RemoveFiles(name string) error {
 func (c DQLConfig) RemoveResourceFiles(schemaName, resourceName string) error {
 	f := resourceName + ".go"
 	t := resourceName + "_test.go"
+	projPath := helpers.GetProjectPath(c.ProjectPath)
 	files := []string{
-		filepath.Join(c.ProjectPath, "models", f),
-		filepath.Join(c.ProjectPath, "services", f),
-		filepath.Join(c.ProjectPath, "services", t),
+		filepath.Join(projPath, "models", f),
+		filepath.Join(projPath, "services", f),
+		filepath.Join(projPath, "services", t),
 	}
 
 	if len(schemaName) > 0 {
-		files = append(files, filepath.Join(c.ProjectPath, "handler", schemaName, "schema", f),
-			filepath.Join(c.ProjectPath, "handler", schemaName, "schema", t))
+		files = append(files, filepath.Join(projPath, "handler", schemaName, "schema", f),
+			filepath.Join(projPath, "handler", schemaName, "schema", t))
 	}
 
 	for _, file := range files {

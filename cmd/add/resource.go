@@ -130,15 +130,17 @@ func renderResourceTemplates(config *models.DQLConfig, model *models.Model, sche
 		"Schema": schema,
 	}
 
+	projPath := helpers.GetProjectPath(config.ProjectPath)
+
 	// iterate over schema templates and execute
 	for g, ts := range templates {
 		var f string
 		if g == "schema" {
-			f = filepath.Join(config.ProjectPath, "handler", schema, "schema")
+			f = filepath.Join(projPath, "handler", schema, "schema")
 		} else if g == "main" {
-			f = filepath.Join(config.ProjectPath, "handler", schema)
+			f = filepath.Join(projPath, "handler", schema)
 		} else {
-			f = filepath.Join(config.ProjectPath, g)
+			f = filepath.Join(projPath, g)
 		}
 		err := os.MkdirAll(f, 0755)
 		if err != nil {

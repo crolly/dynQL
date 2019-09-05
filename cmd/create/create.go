@@ -56,6 +56,10 @@ var (
 	gopkg = `[[constraint]]
 	name = "github.com/aws/aws-lambda-go"
 	version = "^1.0.1"`
+
+	gitignore = `# dynQL
+	bin/
+	vendor/`
 )
 
 func init() {
@@ -76,53 +80,57 @@ func createProjectStructure(projectName string, force bool) (string, error) {
 		return "", err
 	}
 
+	projPath := helpers.GetProjectPath(config.ProjectPath)
 	if force {
-		os.RemoveAll(config.ProjectPath)
-	} else if _, err := os.Stat(config.ProjectPath); !os.IsNotExist(err) {
+		os.RemoveAll(projPath)
+	} else if _, err := os.Stat(projPath); !os.IsNotExist(err) {
 		// projectPath exists already
 		return "", errors.New("folder already exists - raising error: " + err.Error())
 	}
-	os.MkdirAll(config.ProjectPath, 0755)
+	os.MkdirAll(projPath, 0755)
 
 	// write Gopkg.toml
-	if err := ioutil.WriteFile(filepath.Join(config.ProjectPath, "Gopkg.toml"), []byte(gopkg), 0644); err != nil {
+	if err := ioutil.WriteFile(filepath.Join(projPath, "Gopkg.toml"), []byte(gopkg), 0644); err != nil {
+		return "", err
+	}
+
+	// write .gitignore
+	if err := ioutil.WriteFile(filepath.Join(projPath, ".gitignore"), []byte(gitignore), 0644); err != nil {
 		return "", err
 	}
 
 	// persist config
-	return config.ProjectPath, config.Write()
+	return projPath, config.Write()
 }
 
 func newConfig(projectName string) (*models.DQLConfig, error) {
-	pName, pPath, iPath, err := getPaths(projectName)
+	pName, path, err := getPath(projectName)
 	if err != nil {
 		return nil, err
 	}
 
 	config := &models.DQLConfig{
 		ProjectName: pName,
-		ProjectPath: pPath,
-		ImportPath:  iPath,
+		ProjectPath: path,
 		Region:      region,
 	}
 
 	return config, nil
 }
 
-func getPaths(projectName string) (string, string, string, error) {
-	projectPath, importPath := "", ""
+func getPath(projectName string) (string, string, error) {
+	path := ""
 
 	// environments GOPATH
 	goPath := os.Getenv("GOPATH")
 	if len(goPath) == 0 {
-		return "", "", "", errors.New("$GOPATH is not set")
+		return "", "", errors.New("$GOPATH is not set")
 	}
 	srcPath := filepath.Join(goPath, "src")
 
 	if strings.Contains(projectName, "/") {
 		// project is created with full path to GOPATH src e.g. github.com/crolly/dynQL-example
-		projectPath = filepath.Join(srcPath, projectName)
-		importPath = projectName
+		path = projectName
 
 		i := strings.LastIndex(projectName, "/")
 		projectName = projectName[i+1 : len(projectName)]
@@ -130,17 +138,17 @@ func getPaths(projectName string) (string, string, string, error) {
 		// project is created with project name only
 		wd, err := helpers.GetWorkingDir()
 		if err != nil {
-			return "", "", "", err
+			return "", "", err
 		}
 		if filepathHasPrefix(wd, srcPath) {
-			projectPath = filepath.Join(wd, projectName)
-			importPath = strings.TrimPrefix(strings.Replace(projectPath, srcPath, "", 1), "/")
+			path = filepath.Join(wd, projectName)
+			path = strings.TrimPrefix(strings.Replace(path, srcPath, "", 1), "/")
 		} else {
-			return "", "", "", errors.New("You must either create the project inside of $GOPATH or provide the full path (e.g. github.com/crolly/dynQL-example")
+			return "", "", errors.New("You must either create the project inside of $GOPATH or provide the full path (e.g. github.com/crolly/dynQL-example")
 		}
 	}
 
-	return projectName, projectPath, importPath, nil
+	return projectName, path, nil
 }
 
 func filepathHasPrefix(path string, prefix string) bool {

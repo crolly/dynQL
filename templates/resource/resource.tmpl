@@ -17,7 +17,7 @@ import (
 	{{- range $i := .Model.Imports }}
     "{{$i}}"
     {{- end }}
-	"{{.Config.ImportPath}}/services"
+	"{{.Config.ProjectPath}}/services"
 	"github.com/graphql-go/graphql"
 )
 
