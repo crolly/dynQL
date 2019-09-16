@@ -423,6 +423,7 @@ func (c DQLConfig) RemoveResourceFiles(schemaName, resourceName string) error {
 	projPath := helpers.GetProjectPath(c.ProjectPath)
 	files := []string{
 		filepath.Join(projPath, "models", f),
+		filepath.Join(projPath, "models", t),
 		filepath.Join(projPath, "services", f),
 		filepath.Join(projPath, "services", t),
 	}

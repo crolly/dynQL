@@ -77,7 +77,7 @@ func cleanup{{$singlePascal}}Slice(s []*models.{{$singlePascal}}) []error {
 	return errs
 }
 
-func getParams() graphql.ResolveParams {
+func get{{$singlePascal}}Params() graphql.ResolveParams {
 	return graphql.ResolveParams{
 		Info: graphql.ResolveInfo{
 			FieldASTs: []*ast.Field{

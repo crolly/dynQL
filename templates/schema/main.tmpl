@@ -58,5 +58,29 @@ func Handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 }
 
 func main() {
-	lambda.Start(Handler)
+	if local, err := strconv.ParseBool(os.Getenv("LOCAL")); err == nil && local {
+		localHandler()
+	} else {
+		lambda.Start(Handler)
+	}
+}
+
+func localHandler() {
+	h := handler.New(&handler.Config{
+		Schema: &schema.Schema,
+		Pretty: true,
+	})
+
+	http.Handle("/v1", corsHeaders(h))
+	http.ListenAndServe(":4000", nil)
+}
+
+func corsHeaders(next *handler.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		for key, value := range headers {
+			w.Header().Set(key, value)
+		}
+
+		next.ContextHandler(r.Context(), w, r)
+	})
 }

@@ -65,9 +65,9 @@ func Put{{$singlePascal}}(params graphql.ResolveParams) (*{{$singlePascal}}, err
 // Get{{$singlePascal}} is the Read method of the CRUDL to retrive a single {{$singlePascal}} with given key(s)
 func Get{{$singlePascal}}(params graphql.ResolveParams) (*{{$singlePascal}}, error) {
 	{{$singleCamel}} := &{{$singlePascal}}{}
-	{{$hashVar}}, _ := params.Args["{{$singleCamel}}HashName"].(string)
+	{{$hashVar}}, _ := params.Args[{{$singleCamel}}HashName].(string)
 	{{if $composite -}}
-	{{$rangeVar}}, _ := params.Args["{{$singleCamel}}RangeName"].(string)
+	{{$rangeVar}}, _ := params.Args[{{$singleCamel}}RangeName].(string)
 	{{- end}}
 	selects, err := getSelectedFields(params)
 	if err != nil {
@@ -98,9 +98,9 @@ func List{{$pluralPascal}}(params graphql.ResolveParams) ([]*{{$singlePascal}}, 
 
 // Delete{{$singlePascal}} is the Delete method of the CRUDL to delete a single {{$singlePascal}} with given key(s)
 func Delete{{$singlePascal}}(params graphql.ResolveParams) error {
-	{{$hashVar}}, _ := params.Args["{{$singleCamel}}HashName"].(string)
+	{{$hashVar}}, _ := params.Args[{{$singleCamel}}HashName].(string)
 	{{if $composite -}}
-	{{$rangeVar}}, _ := params.Args["{{$singleCamel}}RangeName"].(string)
+	{{$rangeVar}}, _ := params.Args[{{$singleCamel}}RangeName].(string)
 	{{- end}}
 	return services.{{$singlePascal}}Service({{$singleCamel}}HashName{{if $composite}}, {{$singleCamel}}RangeName{{end}}).Delete({{$hashVar}}{{if $composite}}, {{$rangeVar}}{{end}})
 }
