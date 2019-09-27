@@ -313,6 +313,9 @@ func newDefaultServerlessConfig() ServerlessConfig {
 			Name:    "aws",
 			Runtime: "go1.x",
 			Stage:   "${opt:stage, 'dev'}",
+			Environments: map[string]string{
+				"LOCAL": "true",
+			},
 			RoleStatements: []RoleStatement{
 				RoleStatement{
 					Effect: "Allow",

@@ -18,55 +18,45 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package cmd
+package generate
 
 import (
-	"fmt"
 	"os"
 
-	"github.com/crolly/dynQL/cmd/generate"
+	"github.com/crolly/dynQL/cmd/helpers"
 
-	"github.com/crolly/dynQL/cmd/remove"
-
-	"github.com/crolly/dynQL/cmd/test"
-
-	"github.com/crolly/dynQL/cmd/deploy"
-
-	"github.com/crolly/dynQL/cmd/debug"
-
-	"github.com/crolly/dynQL/cmd/add"
-	"github.com/crolly/dynQL/cmd/create"
+	"github.com/crolly/dynQL/cmd/models"
 
 	"github.com/spf13/cobra"
 )
 
 var (
-	cfgFile string
+	// GenerateTablesCmd represents the debug command
+	GenerateTablesCmd = &cobra.Command{
+		Use:   "generate tables",
+		Short: "Generate Tables in Local DynamoDB",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			// get the config
+			c, err := models.ReadDQLConfig()
+			if err != nil {
+				return err
+			}
+
+			// set debug environment
+			os.Setenv("GRAPH_DYNAMO_MODE", "debug")
+
+			// create lambda-local network if it doesn't exist already
+			helpers.CreateLambdaNetwork()
+			// start dynamodb-local
+			helpers.StartLocalDynamoDB()
+			// create tables for resources
+			return c.CreateResourceTables(force)
+		},
+	}
+
+	force bool
 )
 
-// RootCmd represents the base command when called without any subcommands
-var RootCmd = &cobra.Command{
-	Use:   "dynql",
-	Short: "dynql",
-	Long: `
-dynql lets you ....`,
-}
-
 func init() {
-	RootCmd.AddCommand(create.CreateCmd)
-	RootCmd.AddCommand(add.AddCmd)
-	RootCmd.AddCommand(debug.DebugCmd)
-	RootCmd.AddCommand(deploy.DeployCmd)
-	RootCmd.AddCommand(remove.RemoveCmd)
-	RootCmd.AddCommand(test.TestCmd)
-	RootCmd.AddCommand(generate.GenerateTablesCmd)
-}
-
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
-	if err := RootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+	GenerateTablesCmd.Flags().BoolVarP(&force, "force overwrite", "f", false, "force overwrite existing tables (might be necessary if you changed you table definition - e.g. new index)")
 }
