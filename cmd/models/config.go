@@ -210,15 +210,26 @@ func (c DQLConfig) CreateResourceTables(overwrite bool) error {
 		}
 		props := res.Properties
 
+		fmt.Println("Creating Table ", tableName, "...")
 		if tables[tableName] {
 			if overwrite {
-				c.deleteTable(svc, tableName)
-				createTableForResource(svc, tableName, props)
+				err := c.deleteTable(svc, tableName)
+				if err != nil {
+					return err
+				}
+
+				err = createTableForResource(svc, tableName, props)
+				if err != nil {
+					return err
+				}
 			} else {
 				log.Printf("Table %s already exists, skipping creation...", tableName)
 			}
 		} else {
-			createTableForResource(svc, tableName, props)
+			err := createTableForResource(svc, tableName, props)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -267,6 +278,9 @@ func createTableForResource(svc *dynamodb.DynamoDB, tableName string, props Prop
 	for _, i := range props.LocalSecondaryIndexes {
 		keySchema := []*dynamodb.KeySchemaElement{}
 		for _, k := range i.KeySchema {
+			if !existsInAttributes(k.AttributeName, attributes) {
+				return fmt.Errorf("%s does not exist in the AttributeDefinitions. Please check your serverless.yml", k.AttributeName)
+			}
 			keySchema = append(keySchema, &dynamodb.KeySchemaElement{
 				AttributeName: aws.String(flect.New(k.AttributeName).Underscore().String()),
 				KeyType:       aws.String(k.KeyType),
@@ -285,6 +299,9 @@ func createTableForResource(svc *dynamodb.DynamoDB, tableName string, props Prop
 	for _, i := range props.GlobalSecondaryIndexes {
 		keySchema := []*dynamodb.KeySchemaElement{}
 		for _, k := range i.KeySchema {
+			if !existsInAttributes(k.AttributeName, attributes) {
+				return fmt.Errorf("%s does not exist in the AttributeDefinitions. Please check your serverless.yml", k.AttributeName)
+			}
 			keySchema = append(keySchema, &dynamodb.KeySchemaElement{
 				AttributeName: aws.String(flect.New(k.AttributeName).Underscore().String()),
 				KeyType:       aws.String(k.KeyType),
@@ -317,11 +334,9 @@ func createTableForResource(svc *dynamodb.DynamoDB, tableName string, props Prop
 	} else {
 		return errors.New("KeySchema has to be provided")
 	}
-	if len(attributes) == len(keySchema)+len(lsi)+len(gsi) {
-		input.AttributeDefinitions = attributes
-	} else {
-		return errors.New("Number of attributes defined invalid. Did you add your Local Secondary Index to the Attribute Definition?")
-	}
+
+	input.AttributeDefinitions = attributes
+
 	if len(lsi) > 0 {
 		input.LocalSecondaryIndexes = lsi
 	}
@@ -339,6 +354,16 @@ func createTableForResource(svc *dynamodb.DynamoDB, tableName string, props Prop
 
 	log.Printf("Table %s created: %s", tableName, out)
 	return nil
+}
+
+func existsInAttributes(attributeName string, attributes []*dynamodb.AttributeDefinition) bool {
+	for _, attributeDefinition := range attributes {
+		if *attributeDefinition.AttributeName == attributeName {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (c DQLConfig) deleteTable(svc *dynamodb.DynamoDB, tableName string) error {
